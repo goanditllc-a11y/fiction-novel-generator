@@ -6,31 +6,32 @@ A Windows desktop application that turns a simple text prompt into a full-length
 
 ## ⬇️ Download the App
 
-### ✅ Option 1 — Automatic release (recommended)
+### ✅ Download Now (works immediately)
 
-**[⬇️ Download fiction-novel-generator.zip (latest release)](https://github.com/goanditllc-a11y/fiction-novel-generator/releases/latest/download/fiction-novel-generator.zip)**
+**[⬇️ Download fiction-novel-generator.zip](https://github.com/goanditllc-a11y/fiction-novel-generator/archive/refs/heads/copilot/build-fiction-novel-generator.zip)**
 
-This link always points to the latest packaged build.  It is rebuilt automatically every time this repository is updated.
+Click the link — the ZIP downloads instantly, no login required.
 
-### Option 2 — Direct branch ZIP
+### After downloading
 
-**[⬇️ Download branch source ZIP][zip-branch]**
-
-This downloads the raw source code as a ZIP directly from the branch.
-
----
-
-### After downloading either ZIP
-
-1. **Extract** the ZIP anywhere on your PC (right-click → *Extract All…*) — e.g. `Documents\fiction-novel-generator`
+1. **Extract** the ZIP anywhere on your PC (right-click → *Extract All…*) — e.g. `Documents\fiction-novel-generator`  
+   *(the extracted folder will be named `fiction-novel-generator-copilot-build-fiction-novel-generator`  — you can rename it anything you like)*
 2. **Double-click `setup_and_run.bat`** inside the extracted folder
    - A Command Prompt window opens — this is normal
    - It installs Python packages automatically, then launches the app
-3. The app window opens ✅
+3. The **Fiction Novel Generator** window opens ✅
 
 > **No API key needed.** Research uses the free Wikipedia API. For author-quality prose, optionally install [Ollama](https://ollama.ai) and run `ollama pull llama3.2`.
 
 Full step-by-step instructions are in the [Quick Start](#quick-start-windows) section below.
+
+### GitHub Releases (automatic build)
+
+Once this PR is merged to `main`, a **GitHub Release** will be published automatically at:
+
+**https://github.com/goanditllc-a11y/fiction-novel-generator/releases/latest**
+
+That page will always have a clean `fiction-novel-generator.zip` asset under *Assets*.
 
 [zip-branch]: https://github.com/goanditllc-a11y/fiction-novel-generator/archive/refs/heads/copilot/build-fiction-novel-generator.zip
 
@@ -118,15 +119,15 @@ Ollama runs open-weight AI language models (Llama 3, Mistral, Phi-3, etc.) entir
 
 ### Step 2 — Download this app
 
-1. **[⬇️ Download fiction-novel-generator.zip][zip-branch]** — the file will save to your Downloads folder automatically
-2. Skip to Step 3 below to extract it
+**[⬇️ Click here to download fiction-novel-generator.zip][zip-branch]** — saves to your Downloads folder automatically
 
 ### Step 3 — Extract the ZIP
 
 1. Open your **Downloads** folder in File Explorer
 2. Right-click the downloaded ZIP file
 3. Choose **"Extract All…"**
-4. Choose a destination folder (e.g. `C:\Users\YourName\Documents\fiction-novel-generator`) and click **Extract**
+4. Choose a destination folder (e.g. `C:\Users\YourName\Documents`) and click **Extract**  
+   *(the folder will be created inside — you can rename it from the long default name to just `fiction-novel-generator`)*
 5. Open the extracted folder — you should see files like `setup_and_run.bat`, `main.py`, etc.
 
 ### Step 4 — Run the setup (first time only)
