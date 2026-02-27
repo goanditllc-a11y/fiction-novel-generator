@@ -24,29 +24,52 @@ A Windows desktop application that turns a simple text prompt into a full-length
 
 ## Prerequisites
 
-- **Python 3.9 or newer** — download at https://www.python.org/downloads/
-  - ⚠️ During installation, check **"Add Python to PATH"**
-- **A free Gemini API key** — get one at https://aistudio.google.com/app/apikey
+- **A free Gemini API key** — get one at https://aistudio.google.com/app/apikey  
+  *(Python setup is covered in Step 1 of Quick Start below)*
 
 ---
 
 ## Quick Start (Windows)
 
-### First-time setup
+### Step 1 — Install Python (one-time, skip if already done)
 
-1. Download or clone this repository to a folder on your computer
-2. Open that folder in File Explorer
-3. **Double-click `setup_and_run.bat`**
-   - It checks Python, creates a virtual environment, installs packages, and asks for your API key
-   - The app opens automatically when setup completes
+1. Go to **https://www.python.org/downloads/**
+2. Click the big yellow **"Download Python 3.x.x"** button
+3. Run the installer
+4. ⚠️ On the first screen, tick the box **"Add Python to PATH"** before clicking Install Now
+5. Click **Install Now** and wait for it to finish
 
-### Subsequent launches
+### Step 2 — Download this app
 
-- Double-click **`Novel_Generator.bat`** to open the app directly
+1. Go to **https://github.com/goanditllc-a11y/fiction-novel-generator** in your browser
+2. Click the green **`<> Code`** button near the top-right of the page
+3. Click **"Download ZIP"**
+4. A file called **`fiction-novel-generator-main.zip`** will be saved to your Downloads folder
 
-### Optional: Desktop shortcut
+### Step 3 — Extract the ZIP
 
-- Double-click **`create_shortcut.bat`** once to add a shortcut to your desktop
+1. Open your **Downloads** folder in File Explorer
+2. Right-click **`fiction-novel-generator-main.zip`**
+3. Choose **"Extract All…"**
+4. Choose a destination folder (e.g. `C:\Users\YourName\Documents\fiction-novel-generator`) and click **Extract**
+5. Open the extracted folder — you should see files like `setup_and_run.bat`, `main.py`, etc.
+
+### Step 4 — Run the setup (first time only)
+
+1. Inside the extracted folder, **double-click `setup_and_run.bat`**
+   - A black Command Prompt window opens — this is normal
+   - It checks Python, creates a virtual environment, and installs the required packages
+   - When it asks **"Paste your Gemini API key"**, paste your key and press Enter  
+     *(See "How to Get a Gemini API Key" below if you don't have one yet)*
+2. The app window opens automatically when setup is complete 🎉
+
+### Launching the app after the first time
+
+- Double-click **`Novel_Generator.bat`** inside the folder — that's it
+
+### Optional: Pin a shortcut to your Desktop
+
+- Double-click **`create_shortcut.bat`** once — it adds a **"Fiction Novel Generator"** icon to your Desktop
 
 ---
 
