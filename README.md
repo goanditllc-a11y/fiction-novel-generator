@@ -6,7 +6,7 @@ A Windows desktop application that turns a simple text prompt into a full-length
 
 ## ⬇️ Download the App
 
-**[⬇️ Download fiction-novel-generator.zip][zip-release]**
+**[⬇️ Download fiction-novel-generator.zip][zip-branch]**
 
 1. Click the link above — the ZIP file downloads automatically
 2. Extract it anywhere on your PC (e.g. `Documents\fiction-novel-generator`)
@@ -16,10 +16,6 @@ A Windows desktop application that turns a simple text prompt into a full-length
 
 Full step-by-step instructions are in the [Quick Start](#quick-start-windows) section below.
 
-> **Alternative download:** If the link above doesn't work, use the
-> [branch ZIP download][zip-branch] (same files, different packaging).
-
-[zip-release]: https://github.com/goanditllc-a11y/fiction-novel-generator/releases/download/latest/fiction-novel-generator.zip
 [zip-branch]: https://github.com/goanditllc-a11y/fiction-novel-generator/archive/refs/heads/copilot/build-fiction-novel-generator.zip
 
 ---
@@ -77,7 +73,7 @@ This means a 10-chapter novel uses **exactly one** API call instead of the 13+ c
 
 ### Step 2 — Download this app
 
-1. **[⬇️ Download fiction-novel-generator.zip][zip-release]** — the file will save to your Downloads folder automatically
+1. **[⬇️ Download fiction-novel-generator.zip][zip-branch]** — the file will save to your Downloads folder automatically
 2. Skip to Step 3 below to extract it
 
 ### Step 3 — Extract the ZIP
