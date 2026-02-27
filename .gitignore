@@ -1,0 +1,17 @@
+# Sensitive / personal data
+.env
+
+# Generated novels output folder
+novels/
+
+# Python virtual environment
+venv/
+
+# Python bytecode cache
+__pycache__/
+*.pyc
+*.pyo
+
+# OS-generated files
+.DS_Store
+Thumbs.db
