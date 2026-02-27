@@ -4,6 +4,21 @@ A Windows desktop application that turns a simple text prompt into a full-length
 
 ---
 
+## ⬇️ Download the App
+
+**[Click here to download the ZIP][zip-download]**
+
+1. Click the link above — a ZIP file will download automatically
+2. Extract it anywhere on your PC (e.g. `Documents\fiction-novel-generator`)
+3. Double-click **`setup_and_run.bat`** inside the extracted folder
+4. Follow the on-screen prompts (install Python once, paste your free Gemini API key)
+
+Full step-by-step instructions are in the [Quick Start](#quick-start-windows) section below.
+
+[zip-download]: https://github.com/goanditllc-a11y/fiction-novel-generator/archive/refs/heads/copilot/build-fiction-novel-generator.zip
+
+---
+
 ## What It Does
 
 1. You type a novel idea (e.g., *"A detective in 1920s Paris who can hear the last thoughts of murder victims"*)
@@ -41,15 +56,13 @@ A Windows desktop application that turns a simple text prompt into a full-length
 
 ### Step 2 — Download this app
 
-1. Go to **https://github.com/goanditllc-a11y/fiction-novel-generator** in your browser
-2. Click the green **`<> Code`** button near the top-right of the page
-3. Click **"Download ZIP"**
-4. A file called **`fiction-novel-generator-main.zip`** will be saved to your Downloads folder
+1. **[Click here to download the ZIP][zip-download]** — the file will save to your Downloads folder automatically
+2. Skip to Step 3 below to extract it
 
 ### Step 3 — Extract the ZIP
 
 1. Open your **Downloads** folder in File Explorer
-2. Right-click **`fiction-novel-generator-main.zip`**
+2. Right-click the downloaded ZIP file
 3. Choose **"Extract All…"**
 4. Choose a destination folder (e.g. `C:\Users\YourName\Documents\fiction-novel-generator`) and click **Extract**
 5. Open the extracted folder — you should see files like `setup_and_run.bat`, `main.py`, etc.
