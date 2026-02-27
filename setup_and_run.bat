@@ -6,15 +6,27 @@
 :: Double-click this file to:
 ::   1. Check Python is installed
 ::   2. Create a virtual environment
-::   3. Install dependencies
-::   4. Prompt for your Gemini API key (first run only)
-::   5. Launch the app
+::   3. Install dependencies (requests, beautifulsoup4, python-dotenv)
+::   4. Launch the app
+::
+:: No API key required!
+:: - Research uses the free Wikipedia API (internet connection needed)
+:: - Novel generation runs 100% locally on your PC
+:: - For author-quality prose: install Ollama from https://ollama.ai
 :: ============================================================
 
 title Fiction Novel Generator - Setup
 
 echo ============================================================
 echo  Fiction Novel Generator - Setup and Launch
+echo ============================================================
+echo.
+echo  No API key required.
+echo  Research: free Wikipedia API (internet needed for research only)
+echo  Generation: runs entirely on your PC
+echo.
+echo  For author-quality prose, install Ollama from https://ollama.ai
+echo  then run:  ollama pull llama3.2
 echo ============================================================
 echo.
 
@@ -69,27 +81,17 @@ echo Dependencies installed successfully.
 echo.
 
 :: --------------------------------------------------
-:: Step 4: Create .env if it does not exist
+:: Step 4: Create placeholder .env if it doesn't exist
 :: --------------------------------------------------
 if not exist ".env" (
-    echo [4/4] API key setup ^(OPTIONAL^)...
-    echo.
-    echo A free Gemini API key enables richer, research-backed novel generation.
-    echo WITHOUT a key the app still generates complete novels using built-in genre knowledge.
-    echo.
-    echo Get a free key at: https://aistudio.google.com/app/apikey
-    echo.
-    set /p API_KEY="Paste your Gemini API key and press Enter  (or just press Enter to skip): "
-    if defined API_KEY (
-        echo GEMINI_API_KEY=%API_KEY%> .env
-        echo API key saved to .env
-    ) else (
-        echo No key entered. The app will run in offline mode.
-        echo # No API key - app will use built-in genre knowledge for generation> .env
-    )
+    echo [4/4] Creating .env placeholder...
+    echo # Fiction Novel Generator configuration> .env
+    echo # No API key required - research uses free Wikipedia API>> .env
+    echo # Optional: set OLLAMA_HOST if using a remote Ollama server>> .env
+    echo # OLLAMA_HOST=http://localhost:11434>> .env
+    echo .env created.
 ) else (
-    echo [4/4] .env file already exists. Skipping API key setup.
-    echo       (Use the Settings button inside the app to update it.)
+    echo [4/4] .env already exists. Skipping.
 )
 echo.
 
@@ -97,6 +99,7 @@ echo.
 :: Step 5: Launch the app
 :: --------------------------------------------------
 echo Launching Fiction Novel Generator...
+echo.
 python main.py
 
 pause

@@ -5,11 +5,11 @@ Builds the complete desktop window including:
   - Idea prompt input
   - Genre dropdown
   - Chapter count spinbox
-  - Generate button
+  - Generate button with Ollama status indicator
   - Real-time progress/status area
   - Novel preview (scrollable, read-only)
   - Save / New Novel buttons
-  - Settings dialog for API key management
+  - Settings dialog for Ollama configuration
 
 The generation process runs on a background thread so the GUI never freezes.
 
@@ -21,11 +21,12 @@ from __future__ import annotations
 
 import threading
 import tkinter as tk
-from tkinter import messagebox, scrolledtext, simpledialog, ttk
+from tkinter import messagebox, scrolledtext, ttk
 from typing import Optional
 
 import file_manager
 import novel_engine
+import ollama_generator
 from config import DEFAULT_CHAPTERS, DEFAULT_GENRE, GENRES
 
 
@@ -34,78 +35,92 @@ from config import DEFAULT_CHAPTERS, DEFAULT_GENRE, GENRES
 # ---------------------------------------------------------------------------
 
 class NovelGeneratorApp(tk.Tk):
-    """
-    Root Tkinter window.  All widgets are created in _build_ui().
-    """
+    """Root Tkinter window.  All widgets are created in _build_ui()."""
 
     def __init__(self) -> None:
         super().__init__()
         self.title("Fiction Novel Generator")
-        self.geometry("1200x800")
-        self.minsize(900, 600)
+        self.geometry("1280x820")
+        self.minsize(960, 620)
 
-        # Holds the last generated novel data so Save works
-        self._last_result: Optional[dict[str, str]] = None
+        self._last_result: Optional[dict] = None
         self._last_idea: str = ""
         self._last_genre: str = ""
         self._last_chapters: int = DEFAULT_CHAPTERS
 
-        # Apply a clean ttk theme
         style = ttk.Style(self)
-        available = style.theme_names()
         for preferred in ("clam", "alt", "default"):
-            if preferred in available:
+            if preferred in style.theme_names():
                 style.theme_use(preferred)
                 break
 
         self._build_ui()
+        # Check Ollama status after the window is drawn
+        self.after(300, self._refresh_ollama_status)
 
     # ------------------------------------------------------------------
     # UI Construction
     # ------------------------------------------------------------------
 
     def _build_ui(self) -> None:
-        """Creates and arranges all widgets inside the main window."""
-
-        # ── Top bar: title label ──────────────────────────────────────
-        top_frame = ttk.Frame(self, padding=(10, 8))
-        top_frame.pack(fill=tk.X)
+        # ── Top bar ───────────────────────────────────────────────────
+        top = ttk.Frame(self, padding=(10, 8))
+        top.pack(fill=tk.X)
 
         ttk.Label(
-            top_frame,
+            top,
             text="✍️  Fiction Novel Generator",
             font=("Segoe UI", 18, "bold"),
         ).pack(side=tk.LEFT)
 
         ttk.Button(
-            top_frame,
-            text="⚙  Settings",
-            command=self._open_settings,
+            top, text="⚙  Settings", command=self._open_settings,
         ).pack(side=tk.RIGHT, padx=4)
 
         ttk.Separator(self, orient=tk.HORIZONTAL).pack(fill=tk.X)
 
+        # ── Ollama status bar ─────────────────────────────────────────
+        status_bar = ttk.Frame(self, padding=(10, 3))
+        status_bar.pack(fill=tk.X)
+
+        ttk.Label(status_bar, text="Generation engine:", font=("Segoe UI", 9)).pack(side=tk.LEFT)
+        self._ollama_label = ttk.Label(
+            status_bar,
+            text="Checking…",
+            font=("Segoe UI", 9, "bold"),
+            foreground="#888888",
+        )
+        self._ollama_label.pack(side=tk.LEFT, padx=(4, 0))
+
+        ttk.Button(
+            status_bar,
+            text="↻ Refresh",
+            command=self._refresh_ollama_status,
+            width=9,
+        ).pack(side=tk.LEFT, padx=(8, 0))
+
+        ttk.Label(
+            status_bar,
+            text="  |  No API key required — research uses free Wikipedia API",
+            font=("Segoe UI", 9),
+            foreground="#555555",
+        ).pack(side=tk.LEFT)
+
+        ttk.Separator(self, orient=tk.HORIZONTAL).pack(fill=tk.X)
+
         # ── Main paned layout ─────────────────────────────────────────
-        # Left panel: inputs + controls
-        # Right panel: preview
         paned = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         paned.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
 
-        left_frame = ttk.Frame(paned, padding=6)
-        right_frame = ttk.Frame(paned, padding=6)
-        paned.add(left_frame, weight=1)
-        paned.add(right_frame, weight=2)
+        left = ttk.Frame(paned, padding=6)
+        right = ttk.Frame(paned, padding=6)
+        paned.add(left, weight=1)
+        paned.add(right, weight=2)
 
-        # ── Left panel ───────────────────────────────────────────────
-        self._build_left_panel(left_frame)
-
-        # ── Right panel ──────────────────────────────────────────────
-        self._build_right_panel(right_frame)
+        self._build_left_panel(left)
+        self._build_right_panel(right)
 
     def _build_left_panel(self, parent: ttk.Frame) -> None:
-        """Builds the input controls and progress area."""
-
-        # Idea prompt
         ttk.Label(parent, text="Novel Idea / Concept:", font=("Segoe UI", 10, "bold")).pack(
             anchor=tk.W
         )
@@ -122,29 +137,31 @@ class NovelGeneratorApp(tk.Tk):
         self.idea_text.bind("<FocusIn>", self._clear_placeholder)
 
         # Genre + Chapters row
-        options_frame = ttk.Frame(parent)
-        options_frame.pack(fill=tk.X, pady=(0, 8))
+        opts = ttk.Frame(parent)
+        opts.pack(fill=tk.X, pady=(0, 8))
 
-        ttk.Label(options_frame, text="Genre:").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(opts, text="Genre:").grid(row=0, column=0, sticky=tk.W)
         self.genre_var = tk.StringVar(value=DEFAULT_GENRE)
-        genre_combo = ttk.Combobox(
-            options_frame,
+        ttk.Combobox(
+            opts,
             textvariable=self.genre_var,
-            values=GENRES,  # TO EXTEND: Add genres to GENRES list in config.py
+            values=GENRES,
             state="readonly",
             width=18,
-        )
-        genre_combo.grid(row=0, column=1, padx=(4, 16), sticky=tk.W)
+        ).grid(row=0, column=1, padx=(4, 16), sticky=tk.W)
 
-        ttk.Label(options_frame, text="Chapters:").grid(row=0, column=2, sticky=tk.W)
+        ttk.Label(opts, text="Chapters:").grid(row=0, column=2, sticky=tk.W)
         self.chapters_var = tk.IntVar(value=DEFAULT_CHAPTERS)
         ttk.Spinbox(
-            options_frame,
-            from_=1,
-            to=50,
-            textvariable=self.chapters_var,
-            width=5,
+            opts, from_=1, to=50, textvariable=self.chapters_var, width=5,
         ).grid(row=0, column=3, padx=4, sticky=tk.W)
+
+        ttk.Label(
+            opts,
+            text="(25 chapters ≈ 350+ pages)",
+            font=("Segoe UI", 8),
+            foreground="#666666",
+        ).grid(row=1, column=0, columnspan=4, sticky=tk.W, pady=(2, 0))
 
         # Generate button
         self.generate_btn = ttk.Button(
@@ -154,7 +171,7 @@ class NovelGeneratorApp(tk.Tk):
         )
         self.generate_btn.pack(fill=tk.X, pady=(0, 8))
 
-        # Action buttons row
+        # Action buttons
         btn_frame = ttk.Frame(parent)
         btn_frame.pack(fill=tk.X, pady=(0, 6))
 
@@ -174,10 +191,10 @@ class NovelGeneratorApp(tk.Tk):
 
         ttk.Separator(parent, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=6)
 
-        # Progress / status area
-        ttk.Label(
-            parent, text="Status / Progress:", font=("Segoe UI", 10, "bold")
-        ).pack(anchor=tk.W)
+        # Progress area
+        ttk.Label(parent, text="Status / Progress:", font=("Segoe UI", 10, "bold")).pack(
+            anchor=tk.W
+        )
         self.status_text = scrolledtext.ScrolledText(
             parent,
             height=12,
@@ -190,10 +207,9 @@ class NovelGeneratorApp(tk.Tk):
         self.status_text.pack(fill=tk.BOTH, expand=True, pady=(2, 0))
 
     def _build_right_panel(self, parent: ttk.Frame) -> None:
-        """Builds the novel preview area."""
-        ttk.Label(
-            parent, text="Novel Preview:", font=("Segoe UI", 10, "bold")
-        ).pack(anchor=tk.W)
+        ttk.Label(parent, text="Novel Preview:", font=("Segoe UI", 10, "bold")).pack(
+            anchor=tk.W
+        )
         self.preview_text = scrolledtext.ScrolledText(
             parent,
             state=tk.DISABLED,
@@ -206,21 +222,40 @@ class NovelGeneratorApp(tk.Tk):
         self.preview_text.pack(fill=tk.BOTH, expand=True, pady=(2, 0))
 
     # ------------------------------------------------------------------
-    # Event Handlers
+    # Ollama status
+    # ------------------------------------------------------------------
+
+    def _refresh_ollama_status(self) -> None:
+        """Checks Ollama availability and updates the status label."""
+        def _check() -> None:
+            if ollama_generator.is_available():
+                model = ollama_generator.get_best_model()
+                if model:
+                    txt = f"✅ Ollama ready — model: {model}"
+                    col = "#2a7a2a"
+                else:
+                    txt = "⚠️ Ollama running but no models pulled  (run: ollama pull llama3.2)"
+                    col = "#b06000"
+            else:
+                txt = "ℹ️ Ollama not found — using built-in generator  (install from ollama.ai)"
+                col = "#555555"
+            self.after(0, self._ollama_label.config, {"text": txt, "foreground": col})
+
+        threading.Thread(target=_check, daemon=True).start()
+
+    # ------------------------------------------------------------------
+    # Event handlers
     # ------------------------------------------------------------------
 
     def _clear_placeholder(self, _event: tk.Event) -> None:  # type: ignore[type-arg]
-        """Clears the placeholder text when the idea box is first focused."""
         current = self.idea_text.get("1.0", tk.END).strip()
         if current.startswith("Enter your novel idea here"):
             self.idea_text.delete("1.0", tk.END)
 
     def _open_settings(self) -> None:
-        """Opens a simple dialog where the user can enter/update their API key."""
         SettingsDialog(self)
 
     def _start_generation(self) -> None:
-        """Validates inputs then starts the generation thread."""
         idea = self.idea_text.get("1.0", tk.END).strip()
         if not idea or idea.startswith("Enter your novel idea here"):
             messagebox.showwarning("No Idea", "Please enter a novel idea first.")
@@ -233,7 +268,6 @@ class NovelGeneratorApp(tk.Tk):
             messagebox.showwarning("Invalid Chapters", "Please enter a valid number of chapters.")
             return
 
-        # Disable generate button while running
         self.generate_btn.config(state=tk.DISABLED)
         self.save_btn.config(state=tk.DISABLED)
         self._last_result = None
@@ -241,24 +275,17 @@ class NovelGeneratorApp(tk.Tk):
         self._last_genre = genre
         self._last_chapters = num_chapters
 
-        # Clear previous content
         self._set_preview("")
         self._append_status("\n" + "=" * 50 + "\n")
         self._append_status("Starting novel generation…\n")
 
-        # Run on background thread so the GUI stays responsive
-        thread = threading.Thread(
+        threading.Thread(
             target=self._run_generation,
             args=(idea, genre, num_chapters),
             daemon=True,
-        )
-        thread.start()
+        ).start()
 
     def _run_generation(self, idea: str, genre: str, num_chapters: int) -> None:
-        """
-        Runs the novel engine on a background thread.
-        Posts all UI updates back to the main thread via after().
-        """
         def status(msg: str) -> None:
             self.after(0, self._append_status, msg + "\n")
 
@@ -266,35 +293,37 @@ class NovelGeneratorApp(tk.Tk):
             engine = novel_engine.NovelEngine(status_callback=status)
             result = engine.generate_novel(idea, genre, num_chapters)
             self.after(0, self._on_generation_complete, result)
-        except ValueError as exc:
-            # Missing API key or invalid configuration
-            self.after(0, self._on_generation_error, str(exc))
         except OSError as exc:
-            # Network or file-system errors
             self.after(0, self._on_generation_error, f"Network or file error:\n{exc}")
         except Exception as exc:  # noqa: BLE001
-            # Catch-all so the GUI never crashes — show the error to the user
             self.after(0, self._on_generation_error, f"Unexpected error:\n{exc}")
 
-    def _on_generation_complete(self, result: dict[str, str]) -> None:
-        """Called on the main thread when generation finishes successfully."""
+    def _on_generation_complete(self, result: dict) -> None:
         self._last_result = result
-        self._set_preview(result["novel"])
+        novel_text = result["novel"]
+        word_count = len(novel_text.split())
+        pages_est = word_count // 250
+        self._set_preview(novel_text)
         self.save_btn.config(state=tk.NORMAL)
         self.generate_btn.config(state=tk.NORMAL)
-        self._append_status("\n🎉 Novel ready! Click 'Save Novel' to export.\n")
+        self._append_status(
+            f"\n🎉 Novel ready!  "
+            f"~{word_count:,} words (~{pages_est} pages).  "
+            f"Click 'Save Novel' to export.\n"
+        )
         messagebox.showinfo(
-            "Done!", "Your novel has been generated!\n\nClick 'Save Novel' to save it."
+            "Done!",
+            f"Your novel has been generated!\n\n"
+            f"~{word_count:,} words (~{pages_est} pages)\n\n"
+            f"Click 'Save Novel' to save it.",
         )
 
     def _on_generation_error(self, error_msg: str) -> None:
-        """Called on the main thread when generation fails."""
         self.generate_btn.config(state=tk.NORMAL)
         self._append_status(f"\n❌ Error: {error_msg}\n")
         messagebox.showerror("Generation Error", error_msg)
 
     def _save_novel(self) -> None:
-        """Saves the generated novel to disk."""
         if not self._last_result:
             messagebox.showwarning("Nothing to Save", "Generate a novel first.")
             return
@@ -311,20 +340,13 @@ class NovelGeneratorApp(tk.Tk):
             self._append_status(f"\n💾 Saved to: {saved_dir}\n")
             messagebox.showinfo("Saved!", f"Novel saved to:\n{saved_dir}")
         except (OSError, IOError) as exc:
-            messagebox.showerror(
-                "Save Error",
-                f"Could not write files — check disk space and permissions:\n{exc}",
-            )
+            messagebox.showerror("Save Error", f"Could not write files:\n{exc}")
         except Exception as exc:  # noqa: BLE001
-            # Catch-all so the GUI never crashes during save
             messagebox.showerror("Save Error", str(exc))
 
     def _new_novel(self) -> None:
-        """Resets the UI for a fresh start."""
         if self._last_result:
-            if not messagebox.askyesno(
-                "New Novel", "Clear the current novel and start fresh?"
-            ):
+            if not messagebox.askyesno("New Novel", "Clear the current novel and start fresh?"):
                 return
         self.idea_text.delete("1.0", tk.END)
         self.idea_text.insert(
@@ -339,24 +361,21 @@ class NovelGeneratorApp(tk.Tk):
         self._last_result = None
 
     # ------------------------------------------------------------------
-    # Widget Helpers
+    # Widget helpers
     # ------------------------------------------------------------------
 
     def _append_status(self, message: str) -> None:
-        """Appends *message* to the status/progress area."""
         self.status_text.config(state=tk.NORMAL)
         self.status_text.insert(tk.END, message)
         self.status_text.see(tk.END)
         self.status_text.config(state=tk.DISABLED)
 
     def _clear_status(self) -> None:
-        """Clears the status/progress area."""
         self.status_text.config(state=tk.NORMAL)
         self.status_text.delete("1.0", tk.END)
         self.status_text.config(state=tk.DISABLED)
 
     def _set_preview(self, text: str) -> None:
-        """Replaces the novel preview area with *text*."""
         self.preview_text.config(state=tk.NORMAL)
         self.preview_text.delete("1.0", tk.END)
         if text:
@@ -370,112 +389,91 @@ class NovelGeneratorApp(tk.Tk):
 
 class SettingsDialog(tk.Toplevel):
     """
-    A modal dialog that lets the user enter or update their Gemini API key.
-    The key is used for a single research call (Phase 1) only — all novel
-    generation (phases 2-7) runs locally with no further API calls.
-    The key is persisted by rewriting the .env file.
+    Modal settings dialog.
+    Covers Ollama configuration and (optionally) the legacy Gemini API key.
     """
 
     def __init__(self, parent: tk.Tk) -> None:
         super().__init__(parent)
-        self.title("Settings – API Key")
+        self.title("Settings")
         self.resizable(False, False)
-        self.grab_set()  # make modal
+        self.grab_set()
 
-        padding = {"padx": 12, "pady": 6}
+        pad = {"padx": 12, "pady": 5}
 
+        # ── Ollama section ─────────────────────────────────────────────
         ttk.Label(
             self,
-            text="Gemini API Key:",
+            text="Ollama — Local LLM (recommended for author-quality prose)",
             font=("Segoe UI", 10, "bold"),
-        ).grid(row=0, column=0, sticky=tk.W, **padding)
+        ).grid(row=0, column=0, columnspan=2, sticky=tk.W, **pad)
 
         ttk.Label(
             self,
             text=(
-                "The key is used for one research call per novel.\n"
-                "All generation (characters, plot, chapters) runs locally — no extra API calls."
+                "Ollama runs open-weight LLMs entirely on your PC — no API key needed.\n"
+                "1. Download and install from https://ollama.ai/download\n"
+                "2. Open a terminal and run:  ollama pull llama3.2\n"
+                "3. Click 'Refresh' in the main window to activate."
             ),
-            foreground="#555555",
+            foreground="#444444",
+            justify=tk.LEFT,
         ).grid(row=1, column=0, columnspan=2, padx=12, pady=(0, 4), sticky=tk.W)
 
-        # Read existing key from env
-        import os
-        current_key = os.getenv("GEMINI_API_KEY", "")
-
-        self.key_var = tk.StringVar(value=current_key)
-        entry = ttk.Entry(self, textvariable=self.key_var, width=52, show="*")
-        entry.grid(row=2, column=0, columnspan=2, **padding)
-
-        self.show_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(
-            self,
-            text="Show key",
-            variable=self.show_var,
-            command=lambda: entry.config(show="" if self.show_var.get() else "*"),
-        ).grid(row=3, column=0, sticky=tk.W, padx=12)
+        # Current Ollama status
+        if ollama_generator.is_available():
+            models = ollama_generator.get_available_models()
+            best = ollama_generator.get_best_model()
+            status_txt = (
+                f"✅ Ollama is running.  Best model: {best}\n"
+                f"Available models: {', '.join(models) or 'none'}"
+            )
+            col = "#2a7a2a"
+        else:
+            status_txt = (
+                "ℹ️ Ollama is not running.  "
+                "Install from https://ollama.ai/download for best quality."
+            )
+            col = "#555555"
 
         ttk.Label(
             self,
-            text="Get a free key at: https://aistudio.google.com/app/apikey",
-            foreground="blue",
-            cursor="hand2",
-        ).grid(row=4, column=0, columnspan=2, padx=12, pady=(2, 8), sticky=tk.W)
+            text=status_txt,
+            foreground=col,
+            font=("Segoe UI", 9),
+        ).grid(row=2, column=0, columnspan=2, padx=12, pady=(0, 8), sticky=tk.W)
 
-        btn_frame = ttk.Frame(self)
-        btn_frame.grid(row=5, column=0, columnspan=2, pady=(0, 10))
-        ttk.Button(btn_frame, text="Save", command=self._save).pack(
-            side=tk.LEFT, padx=6
-        )
-        ttk.Button(btn_frame, text="Cancel", command=self.destroy).pack(
-            side=tk.LEFT, padx=6
+        ttk.Separator(self, orient=tk.HORIZONTAL).grid(
+            row=3, column=0, columnspan=2, sticky=tk.EW, padx=8, pady=4
         )
 
-        self.center_on_parent(parent)
+        # ── Research section ───────────────────────────────────────────
+        ttk.Label(
+            self,
+            text="Research",
+            font=("Segoe UI", 10, "bold"),
+        ).grid(row=4, column=0, columnspan=2, sticky=tk.W, **pad)
 
-    def center_on_parent(self, parent: tk.Tk) -> None:
-        """Centers this dialog over the parent window."""
+        ttk.Label(
+            self,
+            text=(
+                "Research uses the free Wikipedia public API — no key or login needed.\n"
+                "The app searches Wikipedia automatically based on your novel idea."
+            ),
+            foreground="#444444",
+            justify=tk.LEFT,
+        ).grid(row=5, column=0, columnspan=2, padx=12, pady=(0, 8), sticky=tk.W)
+
+        ttk.Button(self, text="Close", command=self.destroy).grid(
+            row=6, column=0, columnspan=2, pady=(4, 10)
+        )
+
+        self._center(parent)
+
+    def _center(self, parent: tk.Tk) -> None:
         self.update_idletasks()
         pw, ph = parent.winfo_width(), parent.winfo_height()
         px, py = parent.winfo_x(), parent.winfo_y()
         w, h = self.winfo_width(), self.winfo_height()
-        x = px + (pw - w) // 2
-        y = py + (ph - h) // 2
-        self.geometry(f"+{x}+{y}")
+        self.geometry(f"+{px + (pw - w) // 2}+{py + (ph - h) // 2}")
 
-    def _save(self) -> None:
-        """Writes the API key to the .env file and updates the environment."""
-        import os
-        key = self.key_var.get().strip()
-        if not key:
-            # API key is optional — the app uses a local fallback without one
-            messagebox.showinfo(
-                "No Key Entered",
-                "No API key was entered.\n\n"
-                "The app will use built-in genre knowledge for research and generate "
-                "your novel entirely locally.\n\n"
-                "To enable Gemini-powered research, enter a free key from "
-                "https://aistudio.google.com/app/apikey",
-                parent=self,
-            )
-            self.destroy()
-            return
-
-        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-        # Preserve any other variables that may already be in the .env file
-        existing_lines: list[str] = []
-        if os.path.isfile(env_path):
-            with open(env_path, "r", encoding="utf-8") as fh:
-                existing_lines = [
-                    ln for ln in fh.readlines() if not ln.startswith("GEMINI_API_KEY")
-                ]
-
-        existing_lines.append(f"GEMINI_API_KEY={key}\n")
-        with open(env_path, "w", encoding="utf-8") as fh:
-            fh.writelines(existing_lines)
-
-        # Apply to current process so it takes effect immediately
-        os.environ["GEMINI_API_KEY"] = key
-
-        messagebox.showinfo("Saved", "API key saved successfully!", parent=self)
-        self.destroy()

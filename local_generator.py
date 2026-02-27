@@ -1439,20 +1439,576 @@ class LocalNovelGenerator:
         # Assemble all paragraphs into the chapter
         # ------------------------------------------------------------------
         heading = f"Chapter {outline['number']}: {outline['title']}\n" + ("─" * 50)
+
+        # ── Additional scene paragraphs for 3 500+ word chapters ───────
+        # Each pool below is ~150-250 words per paragraph.
+
+        # Backstory flash – a relevant memory
+        backstory_flashes = [
+            (
+                f"The memory arrived without warning, as they sometimes do. "
+                f"A moment from before — from the time when {p} had been someone slightly "
+                f"different, someone who had not yet made the choices that led to {setting}. "
+                f"In the memory, {p} could see clearly what they had not understood then: "
+                f"the pattern that had been forming, the way one small decision accumulates "
+                f"into a character that eventually becomes inescapable. "
+                f"They let the memory run its course. Then they put it away in the place "
+                f"where things that have taught their lesson are stored, and returned "
+                f"their attention to what the present required."
+            ),
+            (
+                f"There had been a version of this before — an earlier iteration of the same "
+                f"essential situation, with different people in different places, "
+                f"but the same underlying geometry. {p} had been younger then, "
+                f"and had handled it in the way that younger people handle things: "
+                f"with more certainty and less wisdom than the situation deserved. "
+                f"The outcome had been — not a disaster exactly, but a lesson. "
+                f"The kind of lesson that comes back to you in moments like this one, "
+                f"not as accusation but as preparation. {p} drew on it now. "
+                f"It was, they found, still useful."
+            ),
+            (
+                f"Someone had told {p} once — a long time ago, in circumstances that seemed "
+                f"unrelated but now seemed anything but — that the things that shape you most "
+                f"are not the ones you choose. The ones you choose, you can prepare for. "
+                f"It is the ones that arrive without announcement that do the real work. "
+                f"Standing in {setting}, {p} thought they understood that differently now "
+                f"than they had when they first heard it. The understanding had taken years "
+                f"and cost rather more than they would have liked."
+            ),
+        ]
+        backstory_flash = self._pick(backstory_flashes)
+
+        # Setting movement – the character moves through/observes the space
+        setting_movements = [
+            (
+                f"{p} moved through {setting} with the particular attention of someone "
+                f"who has learned that details matter — that the world is legible "
+                f"to those who learn to read it. Every space tells a story; "
+                f"this one told several simultaneously, in the way that layered places do. "
+                f"{atmosphere.capitalize()}. The physical facts of it — the way the light "
+                f"fell, the way sound behaved, the quality of the surfaces underfoot — "
+                f"were noted and filed, not because they seemed immediately relevant, "
+                f"but because {p} had found, over time, that relevance declares itself "
+                f"most clearly when you least expect it."
+            ),
+            (
+                f"The geography of {setting} had acquired a familiarity that was not quite "
+                f"comfort — more the specific knowledge of a place that has been moved through "
+                f"under pressure. {p} knew which corners offered sight-lines, "
+                f"which areas amplified sound, where the light was most and least reliable. "
+                f"This was the kind of knowledge that accumulates without intention, "
+                f"the residue of having paid attention during moments when attention mattered. "
+                f"{atmosphere.capitalize()}. They used it now, moving with the practiced "
+                f"efficiency of someone who has learned to read a space for what it offers."
+            ),
+            (
+                f"There was a moment, crossing through {setting}, when {p} stopped. "
+                f"Not because anything had happened — nothing had happened yet — "
+                f"but because of a quality in the {adj} stillness that preceded happening. "
+                f"The kind of stillness that is not the absence of activity "
+                f"but its suspension, held like a breath before release. "
+                f"{atmosphere.capitalize()}. {p} stood in it and took it in and waited "
+                f"for whatever was going to resolve that quality of suspension. "
+                f"It came, as it always came, from an unexpected direction."
+            ),
+        ]
+        setting_movement = self._pick(setting_movements)
+
+        # Character thought – extended internal monologue
+        char_thoughts = [
+            (
+                f"The thing about {theme} — {p} had been thinking about this for longer "
+                f"than they would admit to anyone — is that it presents itself as a single "
+                f"question and turns out, when you look at it honestly, to be several. "
+                f"Each version of the question has its own answer, and those answers "
+                f"are not always consistent with each other. "
+                f"Most people, when they encounter this, choose one answer and stop looking. "
+                f"{p} had never been able to do that. It was not, they had decided, "
+                f"a virtue exactly — more a form of stubbornness that happened to resemble one. "
+                f"They kept looking. They had not found a single answer that held. "
+                f"They had found several that were each partially true, which was harder "
+                f"to live with but more accurate."
+            ),
+            (
+                f"What {p} was learning — slowly, at the necessary cost that slow learning "
+                f"extracts — was that the version of events they had been telling themselves "
+                f"was not wrong exactly, but was incomplete in ways that mattered. "
+                f"The missing parts were not absent because they were unknowable. "
+                f"They were absent because knowing them required admitting things "
+                f"that were uncomfortable to admit. The relevant question was not "
+                f"what was true, but whether {p} was willing to look at what was true "
+                f"without the protective softening of a preferred narrative. "
+                f"They were trying. The trying was harder than it should have been. "
+                f"It was also, they were finding, worth it."
+            ),
+            (
+                f"The question of who you become in circumstances like these — "
+                f"whether the person who emerges at the other end is someone you would "
+                f"recognise as yourself — was not one {p} had expected to be asking. "
+                f"It had arrived the way the most important questions arrive: sideways, "
+                f"in the middle of doing something else, with the particular quality of "
+                f"something that has been waiting for the right moment to be heard. "
+                f"{p} sat with it now, in {setting}, with {atmosphere} around them, "
+                f"and tried to answer it honestly. "
+                f"The honest answer was: I do not know yet. "
+                f"Which was, they thought, the only honest answer available at this stage. "
+                f"The rest would have to wait for what came next."
+            ),
+        ]
+        char_thought = self._pick(char_thoughts)
+
+        # Plot development – a piece of information or event advances the story
+        plot_developments = [
+            (
+                f"The information arrived in the form of something small — "
+                f"a detail {p} had noticed but not attended to properly until now. "
+                f"Seen in the light of everything else, it changed the shape of things. "
+                f"Not dramatically — nothing as convenient as a revelation — "
+                f"but in the way that adding one correct piece to a partial picture "
+                f"sometimes reorganises what you thought you were looking at. "
+                f"{p} turned the new understanding over, tested it against what they knew, "
+                f"and found that it held. The implications were not comfortable. "
+                f"They noted this, filed it alongside the other uncomfortable implications "
+                f"they had been accumulating, and continued."
+            ),
+            (
+                f"Something that had been operating in the background — "
+                f"the slow machinery of {world.central_conflict_element}, "
+                f"which had seemed almost static from {p}'s current position — "
+                f"made itself felt in {setting} in a way that was impossible to miss. "
+                f"The situation had moved. Not in the direction anyone had expected, "
+                f"which was, {p} reflected, exactly in keeping with how the situation "
+                f"had been behaving from the start. "
+                f"They adjusted their understanding, adjusted their position accordingly, "
+                f"and looked at the new configuration with the detached clarity "
+                f"that comes from having been surprised enough times to stop expecting otherwise."
+            ),
+            (
+                f"It was {o} who first put it into words — or rather, who said something "
+                f"adjacent to it that allowed {p} to find the words themselves. "
+                f"That was how the most important things often came: not stated, "
+                f"but made available. The thing that had been right at the edge of "
+                f"articulation for days now resolved itself into a clear sentence in {p}'s mind, "
+                f"and the sentence changed what was possible. "
+                f"Not everything. Not most things. "
+                f"But the specific thing it needed to change, in exactly the way it needed to. "
+                f"Sometimes that is enough."
+            ),
+        ]
+        plot_development = self._pick(plot_developments)
+
+        # Minor obstacle – something small that costs time or comfort
+        minor_obstacles = [
+            (
+                f"Not everything in {setting} cooperated. There was a complication — "
+                f"small in the scale of what they were dealing with, "
+                f"but present with the particular insistence of minor obstacles, "
+                f"which is disproportionate to their size. "
+                f"{p} dealt with it with the resigned efficiency of someone who has learned "
+                f"that refusing to engage with small problems does not make them go away. "
+                f"It cost time. It cost a proportion of their {adj} concentration "
+                f"that they would have preferred to spend elsewhere. "
+                f"Eventually it resolved. They returned to what mattered."
+            ),
+            (
+                f"The complication was, objectively, minor. {p} was aware of this. "
+                f"They were also aware that the awareness did not make it less of a complication. "
+                f"Minor obstacles in the context of larger pressure do not behave as minor obstacles — "
+                f"they absorb attention that the larger situation urgently requires. "
+                f"{p} handled it. Not elegantly, and not with the patience they might have wished "
+                f"to demonstrate, but it was handled. They moved on with the particular "
+                f"determination of someone who has not been stopped but has been slowed, "
+                f"and who has noted the difference."
+            ),
+        ]
+        minor_obstacle = self._pick(minor_obstacles)
+
+        # Resolution step – forward movement toward the goal
+        resolution_steps = [
+            (
+                f"The movement forward was not dramatic. It rarely was — "
+                f"real progress, {p} had learned, tends to be quiet and cumulative, "
+                f"not punctuated by recognisable moments of achievement. "
+                f"But the ground covered in {setting} was real ground, "
+                f"and the distance between where they had been and where they now were "
+                f"was, measured accurately, meaningful. "
+                f"They would not celebrate it. But they noted it, "
+                f"the way you note progress that is too uncertain to celebrate "
+                f"but too real to dismiss, and they let it serve as fuel."
+            ),
+            (
+                f"There was a moment in {setting} when the path forward — "
+                f"which had been obscured by everything else — became, briefly, clear. "
+                f"Not mapped. Not guaranteed. But clear in the sense of: "
+                f"visible, navigable, present. {p} recognised this for what it was "
+                f"and moved before the clarity had a chance to close. "
+                f"That was the thing about moments of clarity: "
+                f"they do not wait for you to finish being uncertain about them. "
+                f"You take them as they arrive, or you miss them. "
+                f"{p} had missed enough of them to know better now."
+            ),
+        ]
+        resolution_step = self._pick(resolution_steps)
+
+        # Tension paragraph – stakes raised for what comes next
+        tension_paras = [
+            (
+                f"The {adj} pressure of what remained — what was still unresolved, "
+                f"still pending, still capable of turning in either direction — "
+                f"was not something {p} could set down in {setting} and walk away from. "
+                f"It was the kind of pressure that does not release when you are not actively "
+                f"engaged with it, but simply waits, with the patient persistence "
+                f"of things that are not on a deadline. "
+                f"{p} felt it. They had felt it for some time. They had learned to work with it "
+                f"rather than against it — to carry it as a reminder rather than a burden, "
+                f"though the distinction was not always easy to maintain."
+            ),
+            (
+                f"Everything that had happened today had tightened the situation. "
+                f"{p} was aware of this as a physical thing — the way a rope under tension "
+                f"feels different from a rope at rest, the way the {adj} quality of the air "
+                f"in {setting} carried the specific density of things that are approaching resolution. "
+                f"Whatever came next, it would come with an urgency that did not leave "
+                f"much room for the comfortable indecision of earlier in the story. "
+                f"{p} looked at what they had and what they still needed, "
+                f"and made what calculations were possible."
+            ),
+        ]
+        tension_para = self._pick(tension_paras)
+
+        # Sensory immersion – deep physical grounding
+        sensory_immersions = [
+            (
+                f"Later, what {p} would remember most about {setting} on this day "
+                f"was not the significant things — not the conversation, not the event, "
+                f"not the decision — but the physical specifics: "
+                f"the way {atmosphere} registered on the skin, "
+                f"the particular quality of the sounds at that hour, "
+                f"the weight of the air. "
+                f"The mind, under pressure, fixes on the irrelevant. "
+                f"Or what seems irrelevant. {p} had come to believe that nothing "
+                f"the mind under pressure fixes on is truly irrelevant — "
+                f"that the body knows things the mind has not yet articulated, "
+                f"and communicates them in the only language available to it: sensation."
+            ),
+            (
+                f"The {adj} quality of {setting} had the specific texture of places "
+                f"where important things happen — not distinguished, not theatrical, "
+                f"but somehow more present than ordinary places. "
+                f"Every sensory detail was slightly heightened: "
+                f"the way {atmosphere} made the familiar unfamiliar, "
+                f"the specific sound of movement in this particular space, "
+                f"the way time seemed to have a different density here than elsewhere. "
+                f"{p} moved through it with the attention of someone "
+                f"who understands that the physical world is not merely background "
+                f"but participant — that a story happens in a place, and the place "
+                f"is changed by the story as the story is shaped by the place."
+            ),
+        ]
+        sensory_immersion = self._pick(sensory_immersions)
+
         parts = [
             heading,
             opening,
             approach,
+            backstory_flash,
             dialogue,
             internal,
+            setting_movement,
             action,
+            char_thought,
             world_desc,
+            plot_development,
             second_dialogue,
+            minor_obstacle,
             sensory,
+            resolution_step,
+            tension_para,
             consequence,
+            sensory_immersion,
             closing,
         ]
         return "\n\n".join(parts)
+
+    # ------------------------------------------------------------------
+    # Chapter padding — extend to target word count
+    # ------------------------------------------------------------------
+
+    def _pad_chapter(
+        self,
+        text: str,
+        outline: Dict[str, str],
+        characters: List[Character],
+        world: World,
+        plot: Dict[str, str],
+        target_words: int = 3500,
+    ) -> str:
+        """
+        Appends additional prose paragraphs to *text* until it reaches
+        *target_words*.  Draws from a large pool of paragraph templates to
+        minimise repetition.
+        """
+        protagonist = next(c for c in characters if c.role == "protagonist")
+        antagonist = next(c for c in characters if c.role == "antagonist")
+        others = [c for c in characters if c.role != "protagonist"]
+
+        p = protagonist.name.split()[0]
+        o = self._pick(others).name.split()[0]
+        setting = outline["location"]
+        atmosphere = self._pick(self._gd["atmosphere"])
+        adj = self._pick(self._gd["power_words"])
+        theme = self._pick(world.themes)
+        place = setting
+        Place = setting[0].upper() + setting[1:]
+
+        # Large pool of extension paragraphs (~150-200 words each)
+        pool = [
+            (
+                f"The quality of waiting — which {p} had been doing, in one form or "
+                f"another, for longer than they could easily account for — "
+                f"was something they had learned to use rather than merely endure. "
+                f"Waiting, properly attended to, is information. "
+                f"The texture of a silence tells you what kind of silence it is. "
+                f"The weight of a moment tells you what it is pregnant with. "
+                f"{p} paid attention to these things now in {setting}, "
+                f"reading the available information with the care of someone who has "
+                f"learned that the world communicates constantly and that most people "
+                f"are simply not listening at the required frequency. "
+                f"What they read in the present quality of {place} was not comfortable. "
+                f"But it was, at least, clear."
+            ),
+            (
+                f"The light in {setting} was changing. "
+                f"{atmosphere.capitalize()} at this hour gave everything "
+                f"a different quality than it had carried in the earlier part of the day — "
+                f"more {adj}, more weighted, more aware of its own significance. "
+                f"{p} had always paid attention to light, to the way it shifted "
+                f"the emotional register of a place without changing its physical facts. "
+                f"The same room, the same faces, the same situation — "
+                f"but the light different, and so the experience different. "
+                f"Right now the light was saying something specific about this moment, "
+                f"and {p} was trying to translate it accurately. "
+                f"The translation, they suspected, would not be welcome. "
+                f"But welcome or not, it was the truth the light was offering, "
+                f"and they had never found anything useful in refusing to hear the truth."
+            ),
+            (
+                f"The thing about {o} — and {p} had been thinking about this "
+                f"in the unguarded moments that arrive between decisions — "
+                f"was that they were not, as {p} had initially assumed, "
+                f"simply a problem to be solved. They were a mirror. "
+                f"Not a flattering one, but an honest one. "
+                f"The qualities in {o} that {p} found most difficult "
+                f"were the qualities that {p} was at some risk of developing "
+                f"themselves, under sufficient pressure. "
+                f"This was the uncomfortable lesson that antagonists teach: "
+                f"not that they are entirely different from the protagonist, "
+                f"but that they are what the protagonist might become "
+                f"if certain choices were made differently at certain junctures. "
+                f"{p} filed this awareness in the place where useful discomforts live "
+                f"and returned their attention to what the present required."
+            ),
+            (
+                f"The world that surrounded {setting} — the larger world, "
+                f"the world that had produced the characters in this story "
+                f"and the conflict that drove them — "
+                f"was not separate from what was happening here. "
+                f"It was present in the way that the context of all things is present: "
+                f"invisibly, structurally, as the thing that makes everything else possible "
+                f"and that shapes every choice without being acknowledged as doing so. "
+                f"{p} understood this better now than at the beginning. "
+                f"The beginning had the simplicity of not yet knowing "
+                f"how complicated things were. "
+                f"Now they knew. The complication was not reassuring, "
+                f"but it was at least honest, and honesty — "
+                f"even the difficult kind — was something {p} could work with."
+            ),
+            (
+                f"There are moments in the middle of difficult situations "
+                f"when the difficulty reveals something that easier circumstances "
+                f"would have kept concealed. {p} was having one of those moments now. "
+                f"The specific pressure of what was happening in {setting} — "
+                f"the {adj} weight of the decision that had to be made, "
+                f"the knowledge of what was at stake on either side — "
+                f"was doing the thing that pressure sometimes does: "
+                f"burning away the unnecessary and leaving what was actually true. "
+                f"What remained, when the burning was finished, "
+                f"was not a comfortable thing. But it was a real thing. "
+                f"And real things, {p} had found, are easier to act on "
+                f"than comfortable fictions. Even when the action they demand is hard."
+            ),
+            (
+                f"The silence between {p} and the demands of the moment "
+                f"was not empty. It was full of the things neither was saying — "
+                f"the implications not yet drawn, the conclusions not yet reached, "
+                f"the costs not yet counted. {p} moved through {setting} "
+                f"with this fullness around them, aware of it the way you are aware "
+                f"of something important that you are not yet ready to address directly. "
+                f"Sometimes the right approach to a thing is to circle it. "
+                f"To let it become familiar before engaging it fully. "
+                f"To learn its shape before testing it. "
+                f"{p} was circling now. The direct engagement would come. "
+                f"But not until they had a better sense of what they were approaching."
+            ),
+            (
+                f"The work that had brought {p} to this point — "
+                f"the specific, {adj} labour of getting from there to here — "
+                f"had not been without cost. Something had been given up along the way. "
+                f"Several things, in fact. The accounting of what had been spent "
+                f"and what remained was not a comfortable exercise, "
+                f"but it was a necessary one. {p} did it honestly, "
+                f"as they tried to do all difficult things: without the softening "
+                f"of self-deception, without the comfort of preferred narratives, "
+                f"with only the clarity of seeing what was actually there. "
+                f"The balance was not what they would have designed in advance. "
+                f"But it was the balance that the story had produced, "
+                f"and working with what the story produced was the only viable option."
+            ),
+            (
+                f"In {setting}, the particular truth of {theme} "
+                f"was more present than elsewhere — "
+                f"not because {setting} was special, but because "
+                f"circumstances had made it the location where "
+                f"this particular truth had chosen to surface. "
+                f"Places acquire meaning from the things that happen in them. "
+                f"{p} would not be able to return here without carrying "
+                f"the weight of this day. That was the transaction "
+                f"that significant events always make: "
+                f"they claim the places where they occur, "
+                f"making them simultaneous historical sites and continuing spaces. "
+                f"{p} stood in both versions of {place} at once — "
+                f"the physical one, and the one that was already memory."
+            ),
+            (
+                f"The conversation that {p} had been preparing for — "
+                f"had been moving toward since the beginning of everything that had led here — "
+                f"had still not arrived. But its approach was unmistakable. "
+                f"The way certain weather makes itself felt before it becomes visible: "
+                f"a shift in pressure, a quality of attention in the environment, "
+                f"a particular {adj} tension in the air of {setting}. "
+                f"{p} prepared for it the way they prepared for most things "
+                f"they could not avoid: by doing what they could do now "
+                f"to be in the best possible position when it arrived, "
+                f"and by accepting that some part of the outcome "
+                f"was not within their ability to control. "
+                f"That acceptance had not come easily. "
+                f"But it had, with practice, come."
+            ),
+            (
+                f"Something that had been operating below the level "
+                f"of {p}'s conscious attention moved up into awareness now "
+                f"in {setting}: a pattern, half-formed, but recognisable. "
+                f"The events that had seemed separate — "
+                f"the encounters that had seemed coincidental, "
+                f"the information that had seemed disconnected — "
+                f"were, when placed in the right order, a coherent sequence. "
+                f"They had been reading individual words "
+                f"when they should have been reading sentences. "
+                f"{p} stood in {setting} and put the sentences together "
+                f"and read what they said, and what they said changed "
+                f"the {adj} geography of the situation they were navigating. "
+                f"Not completely. But in the specific way that "
+                f"matters when you are trying to find a path through."
+            ),
+            (
+                f"Later, when {p} tried to reconstruct exactly "
+                f"what had shifted in {setting} and when, "
+                f"they would not be able to identify a single moment. "
+                f"That was the nature of real change: "
+                f"it does not arrive in a recognisable instant "
+                f"but accumulates in increments that are each too small to notice, "
+                f"until suddenly the sum is visible and unmistakeable. "
+                f"The {adj} weight of what they now understood "
+                f"had been building for some time, in the way that understanding builds: "
+                f"quietly, beneath the surface of conscious thought, "
+                f"from the raw material of experience and observation "
+                f"and the slow work of the mind that continues "
+                f"even when you are not directing it."
+            ),
+            (
+                f"The central question — which {p} had been carrying "
+                f"since before {setting} had entered the picture — "
+                f"was not going to answer itself. "
+                f"This was something {p} had known for some time "
+                f"but had not yet fully accepted: that the answer "
+                f"was not waiting to be discovered but waiting to be made. "
+                f"That was different. Discovering implies that the answer exists "
+                f"independently, fully formed, and requires only finding. "
+                f"Making implies participation, commitment, consequence. "
+                f"The thing {p} was moving toward was not already there. "
+                f"They were going to have to build it "
+                f"from the materials the situation had provided, "
+                f"with the tools they had developed — or failed to develop — "
+                f"in the course of getting here."
+            ),
+            (
+                f"The {adj} fact of what had not yet been said between {p} and {o} "
+                f"was present in {setting} as a physical weight. "
+                f"Conversations deferred do not disappear — "
+                f"they accumulate interest. "
+                f"Every exchange that avoids the central subject "
+                f"adds to the eventual cost of addressing it. "
+                f"{p} was aware of this, and aware that {o} was aware of it, "
+                f"and aware that the mutual awareness did not make "
+                f"the avoidance any easier to end. "
+                f"Some conversations require the right moment. "
+                f"Some require the right conditions. "
+                f"Some require simply the decision that deferral "
+                f"has reached its limit and the conversation "
+                f"is going to happen now, conditions or not. "
+                f"{p} was approaching that limit."
+            ),
+            (
+                f"The view from this position in {setting} — "
+                f"literally and otherwise — "
+                f"was different from the view that had been available before. "
+                f"Movement changes perspective. That was one of the things "
+                f"that movement was for: not just physical translation "
+                f"but the repositioning of the point of view "
+                f"from which everything else is assessed. "
+                f"{p} looked at the situation from where they now stood "
+                f"and saw things that had been invisible from the previous position. "
+                f"Some of what was now visible was better than expected. "
+                f"Some was worse. The {adj} totality of it "
+                f"was more complete than what they had been working with before, "
+                f"which made it more useful, whatever its emotional content."
+            ),
+            (
+                f"The things that had been holding {p} in place — "
+                f"the habits of thought, the inherited assumptions, "
+                f"the comfortable certainties that the story had been slowly dismantling — "
+                f"were fewer now than at the beginning. "
+                f"This was not entirely comfortable. "
+                f"Certainty, even wrong certainty, provides a kind of anchor. "
+                f"Without it, the movement required was more effortful, "
+                f"the navigation more demanding. "
+                f"But {p} had discovered that effortful navigation "
+                f"was preferable to confident movement in the wrong direction. "
+                f"They moved now with more care and more uncertainty "
+                f"and were, they found, getting further with both "
+                f"than they had ever got with the certainties of before."
+            ),
+        ]
+
+        extra_paragraphs: List[str] = []
+        # Shuffle pool to randomise which paragraphs are used
+        shuffled = list(pool)
+        self._rng.shuffle(shuffled)
+        pool_iter = iter(shuffled)
+
+        while len(text.split()) + sum(len(ep.split()) for ep in extra_paragraphs) < target_words:
+            try:
+                extra_paragraphs.append(next(pool_iter))
+            except StopIteration:
+                # Restart pool if exhausted (for very low word counts)
+                reshuffled = list(pool)
+                self._rng.shuffle(reshuffled)
+                pool_iter = iter(reshuffled)
+
+        if extra_paragraphs:
+            text = text + "\n\n" + "\n\n".join(extra_paragraphs)
+        return text
 
     # ------------------------------------------------------------------
     # Formatting helpers
@@ -1573,9 +2129,17 @@ class LocalNovelGenerator:
     def generate_all(
         self,
         status_callback: Optional[Callable[[str], None]] = None,
+        chapter_writer: Optional[Callable] = None,
     ) -> Dict[str, str]:
         """
         Run all local generation phases and return a dict of all artefacts.
+
+        Args:
+            status_callback: Called with status strings during generation.
+            chapter_writer:  Optional callable(chapter_index, outline,
+                             characters, world, plot) -> str.
+                             If provided, called instead of write_chapter()
+                             for each chapter (used by Ollama integration).
 
         Keys: novel, world, characters, plot_outline, chapter_outlines
         (The caller is responsible for adding "research" to the returned dict.)
@@ -1603,10 +2167,18 @@ class LocalNovelGenerator:
         status("✍️  Phase 6/7: Writing chapters...")
         chapter_texts: List[str] = []
         for i, outline in enumerate(outlines):
-            status(f"✍️  Writing chapter {i + 1} of {self.num_chapters}...")
-            chapter_texts.append(
-                self.write_chapter(outline, characters, world, plot)
-            )
+            if chapter_writer is not None:
+                # External writer (e.g. Ollama) handles prose generation
+                chapter_texts.append(
+                    chapter_writer(i, outline, characters, world, plot)
+                )
+            else:
+                status(f"✍️  Writing chapter {i + 1} of {self.num_chapters}...")
+                chapter_text = self.write_chapter(outline, characters, world, plot)
+                chapter_text = self._pad_chapter(
+                    chapter_text, outline, characters, world, plot
+                )
+                chapter_texts.append(chapter_text)
 
         status("📦 Phase 7/7: Compiling the final novel...")
         novel = self._compile(characters, world, chapter_texts)

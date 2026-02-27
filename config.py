@@ -14,31 +14,33 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ---------------------------------------------------------------------------
-# AI Model Settings
+# Ollama Local LLM Settings
 # ---------------------------------------------------------------------------
 
-# The Gemini model to use for all generation tasks.
-# TO EXTEND: Change this to any other supported Gemini model name.
-DEFAULT_MODEL: str = "gemini-2.0-flash"
+# Ollama server address.  Change to a LAN address to use a remote Ollama instance.
+OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
-# Maximum output tokens per API call (controls response length).
-MAX_OUTPUT_TOKENS: int = 8192
+# Recommended Ollama model for first-time users (good quality, ~2GB download).
+# Run:  ollama pull llama3.2
+OLLAMA_RECOMMENDED_MODEL: str = "llama3.2"
 
-# Temperature controls creativity (0.0 = deterministic, 1.0 = very creative).
-TEMPERATURE: float = 0.85
+# Target words per chapter when using the Ollama LLM generator.
+OLLAMA_TARGET_WORDS_PER_CHAPTER: int = 3500
 
 # ---------------------------------------------------------------------------
 # Novel Defaults
 # ---------------------------------------------------------------------------
 
 # Default number of chapters when the app starts.
-DEFAULT_CHAPTERS: int = 10
+# 25 chapters × ~3,500 words/chapter ≈ 87,500 words ≈ 350 pages.
+DEFAULT_CHAPTERS: int = 25
 
 # Default genre selection in the dropdown.
 DEFAULT_GENRE: str = "General"
 
-# Minimum target word count per chapter (used in prompts as guidance).
-MIN_WORDS_PER_CHAPTER: int = 1500
+# Target word count per chapter for the local (non-Ollama) generator.
+# Each chapter is assembled from multiple scene paragraphs to hit this target.
+MIN_WORDS_PER_CHAPTER: int = 3500
 
 # Genres available in the GUI dropdown.
 # TO EXTEND: Add new genre strings to this list and they'll appear automatically.
@@ -64,14 +66,12 @@ GENRES: list[str] = [
 NOVELS_DIR: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), "novels")
 
 # ---------------------------------------------------------------------------
-# API Key
+# Legacy API key (kept for backward compatibility; not used by default)
 # ---------------------------------------------------------------------------
 
 def get_api_key() -> str:
     """
-    Returns the Gemini API key loaded from the .env file.
-
-    Returns an empty string if no key is configured so callers can
-    detect and prompt the user.
+    Returns the Gemini API key from the environment (legacy; not used by default).
+    Research now uses the free Wikipedia API — no key required.
     """
     return os.getenv("GEMINI_API_KEY", "")

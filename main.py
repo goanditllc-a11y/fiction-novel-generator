@@ -23,9 +23,9 @@ def _check_dependencies() -> None:
     missing: list[str] = []
 
     try:
-        import google.generativeai  # noqa: F401
+        import requests  # noqa: F401
     except ImportError:
-        missing.append("google-generativeai")
+        missing.append("requests")
 
     try:
         import dotenv  # noqa: F401
