@@ -25,13 +25,13 @@ Click the link — the ZIP downloads instantly, no login required.
 
 Full step-by-step instructions are in the [Quick Start](#quick-start-windows) section below.
 
-### GitHub Releases (automatic build)
+### Other download options
 
-Once this PR is merged to `main`, a **GitHub Release** will be published automatically at:
-
-**https://github.com/goanditllc-a11y/fiction-novel-generator/releases/latest**
-
-That page will always have a clean `fiction-novel-generator.zip` asset under *Assets*.
+| Option | Link | Notes |
+|--------|------|-------|
+| **Branch ZIP** *(above)* | [fiction-novel-generator.zip][zip-branch] | Always up-to-date, no login needed |
+| **GitHub Releases** | [releases/latest](https://github.com/goanditllc-a11y/fiction-novel-generator/releases/latest) | Published automatically after merge to `main` |
+| **Actions artifact** | [Actions tab → latest run → Artifacts](https://github.com/goanditllc-a11y/fiction-novel-generator/actions/workflows/release.yml) | `fiction-novel-generator` artifact, kept 90 days |
 
 [zip-branch]: https://github.com/goanditllc-a11y/fiction-novel-generator/archive/refs/heads/copilot/build-fiction-novel-generator.zip
 

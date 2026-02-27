@@ -1,9 +1,11 @@
 name: Build & Publish Download Package
 
 # Runs on every push so the release ZIP is always up-to-date.
+# Can also be triggered manually from the Actions tab (no branch restriction).
 'on':
   push:
     branches: ["copilot/build-fiction-novel-generator", "main"]
+  workflow_dispatch:
 
 # Ensure only one release job runs at a time to avoid race conditions
 # when multiple pushes happen in quick succession.
@@ -44,7 +46,17 @@ jobs:
 
           echo "ZIP size: $(du -sh /tmp/fiction-novel-generator.zip | cut -f1)"
 
-      # ── 3. Create / update the 'latest' release ───────────────────
+      # ── 3. Upload the ZIP as a workflow artifact ──────────────────
+      # This makes the ZIP downloadable from the Actions tab immediately,
+      # regardless of whether the GitHub Release step below succeeds.
+      - name: Upload ZIP as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fiction-novel-generator
+          path: /tmp/fiction-novel-generator.zip
+          retention-days: 90
+
+      # ── 4. Create / update the 'latest' release ───────────────────
       # Delete and recreate so the asset is always current.
       # Release notes are read from .github/RELEASE_NOTES.md to keep
       # them easy to update without touching the workflow.
