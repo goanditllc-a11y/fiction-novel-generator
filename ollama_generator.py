@@ -139,6 +139,7 @@ def get_best_model() -> Optional[str]:
 def _generate_text(
     model: str,
     prompt: str,
+    target_words: int = 3500,
     status_callback: Optional[Callable[[str], None]] = None,
 ) -> str:
     """
@@ -379,7 +380,7 @@ def write_chapter(
         f"Chapter {chapter_num}: {chapter_title}"
     )
 
-    result = _generate_text(model, prompt, status_callback=status_callback)
+    result = _generate_text(model, prompt, target_words=target_words, status_callback=status_callback)
 
     # Ensure heading is present
     heading = f"Chapter {chapter_num}: {chapter_title}"
