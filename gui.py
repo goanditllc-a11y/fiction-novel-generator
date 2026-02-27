@@ -371,6 +371,8 @@ class NovelGeneratorApp(tk.Tk):
 class SettingsDialog(tk.Toplevel):
     """
     A modal dialog that lets the user enter or update their Gemini API key.
+    The key is used for a single research call (Phase 1) only — all novel
+    generation (phases 2-7) runs locally with no further API calls.
     The key is persisted by rewriting the .env file.
     """
 
@@ -388,13 +390,22 @@ class SettingsDialog(tk.Toplevel):
             font=("Segoe UI", 10, "bold"),
         ).grid(row=0, column=0, sticky=tk.W, **padding)
 
+        ttk.Label(
+            self,
+            text=(
+                "The key is used for one research call per novel.\n"
+                "All generation (characters, plot, chapters) runs locally — no extra API calls."
+            ),
+            foreground="#555555",
+        ).grid(row=1, column=0, columnspan=2, padx=12, pady=(0, 4), sticky=tk.W)
+
         # Read existing key from env
         import os
         current_key = os.getenv("GEMINI_API_KEY", "")
 
         self.key_var = tk.StringVar(value=current_key)
         entry = ttk.Entry(self, textvariable=self.key_var, width=52, show="*")
-        entry.grid(row=1, column=0, columnspan=2, **padding)
+        entry.grid(row=2, column=0, columnspan=2, **padding)
 
         self.show_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
@@ -402,17 +413,17 @@ class SettingsDialog(tk.Toplevel):
             text="Show key",
             variable=self.show_var,
             command=lambda: entry.config(show="" if self.show_var.get() else "*"),
-        ).grid(row=2, column=0, sticky=tk.W, padx=12)
+        ).grid(row=3, column=0, sticky=tk.W, padx=12)
 
         ttk.Label(
             self,
             text="Get a free key at: https://aistudio.google.com/app/apikey",
             foreground="blue",
             cursor="hand2",
-        ).grid(row=3, column=0, columnspan=2, padx=12, pady=(2, 8), sticky=tk.W)
+        ).grid(row=4, column=0, columnspan=2, padx=12, pady=(2, 8), sticky=tk.W)
 
         btn_frame = ttk.Frame(self)
-        btn_frame.grid(row=4, column=0, columnspan=2, pady=(0, 10))
+        btn_frame.grid(row=5, column=0, columnspan=2, pady=(0, 10))
         ttk.Button(btn_frame, text="Save", command=self._save).pack(
             side=tk.LEFT, padx=6
         )
@@ -437,7 +448,17 @@ class SettingsDialog(tk.Toplevel):
         import os
         key = self.key_var.get().strip()
         if not key:
-            messagebox.showwarning("Empty Key", "Please enter an API key.", parent=self)
+            # API key is optional — the app uses a local fallback without one
+            messagebox.showinfo(
+                "No Key Entered",
+                "No API key was entered.\n\n"
+                "The app will use built-in genre knowledge for research and generate "
+                "your novel entirely locally.\n\n"
+                "To enable Gemini-powered research, enter a free key from "
+                "https://aistudio.google.com/app/apikey",
+                parent=self,
+            )
+            self.destroy()
             return
 
         env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")

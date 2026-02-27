@@ -29,6 +29,21 @@ Full step-by-step instructions are in the [Quick Start](#quick-start-windows) se
 
 ---
 
+## How Generation Works
+
+The app uses a **two-stage pipeline** designed to stay within free-tier API limits:
+
+| Stage | What happens | API calls |
+|-------|-------------|-----------|
+| **Research** (Phase 1) | One Gemini call gathers background context, genre conventions, and thematic ideas for your story | **1 call total** |
+| **Generation** (Phases 2–7) | Characters, world, plot, chapter outlines, and full chapter prose are generated **locally on your machine** from the research | **0 calls** |
+
+This means a 10-chapter novel uses **exactly one** API call instead of the 13+ calls the original design used — which was causing the free-tier quota error (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`).
+
+**No API key?** The app falls back to built-in genre knowledge for the research phase and generates your novel entirely offline.
+
+---
+
 ## Screenshots
 
 **Main window layout:**
@@ -39,7 +54,8 @@ Full step-by-step instructions are in the [Quick Start](#quick-start-windows) se
 
 ## Prerequisites
 
-- **A free Gemini API key** — get one at https://aistudio.google.com/app/apikey  
+- **A free Gemini API key** *(optional but recommended)* — get one at https://aistudio.google.com/app/apikey  
+  Without a key the app still generates complete novels using built-in genre knowledge.  
   *(Python setup is covered in Step 1 of Quick Start below)*
 
 ---
@@ -175,11 +191,12 @@ Each file has `# TO EXTEND:` comments at key extension points.
 | Problem | Solution |
 |---------|----------|
 | *"Python is not installed or not in your PATH"* | Reinstall Python from python.org and check **Add Python to PATH** |
-| *"No Gemini API key found"* | Click ⚙ Settings and enter your key, or edit the `.env` file |
+| *"No Gemini API key found"* | The app will use built-in genre knowledge automatically. For richer research, click ⚙ Settings and enter your free key |
 | *"Failed to install dependencies"* | Run Command Prompt as Administrator and re-run `setup_and_run.bat` |
 | App window is blank or crashes | Make sure you're using Python 3.9+ (`python --version`) |
-| Generation takes a long time | Normal — each chapter makes multiple API calls. A 10-chapter novel may take 5–15 minutes |
-| API quota exceeded | You've hit the free-tier limit. Wait or upgrade your Google AI Studio plan |
+| API quota error (`GenerateRequestsPerDay…`) | Already fixed — generation now runs locally; only 1 API call is made per novel |
+| Generation takes a long time | Normal for large chapter counts — all generation is local so speed depends on your PC |
+| API quota exceeded on research call | You've hit the free daily limit. Wait until it resets (midnight Pacific) or generate without a key |
 
 ---
 
