@@ -23,6 +23,7 @@ TO EXTEND: Add new research sub-sections by extending RESEARCH_PROMPT below.
 """
 
 import google.generativeai as genai  # type: ignore
+import google.api_core.exceptions as gapi_exc  # type: ignore
 from config import DEFAULT_MODEL, MAX_OUTPUT_TOKENS, TEMPERATURE, get_api_key
 
 
@@ -190,6 +191,8 @@ def research_topic(idea: str, genre: str) -> str:
     Raises:
         Exception: On unrecoverable API errors (auth failure, network error, etc.).
                    Missing API key does NOT raise — the local fallback is used instead.
+                   Quota / rate-limit errors (429) also use the local fallback instead
+                   of raising, so generation always continues.
     """
     api_key = get_api_key()
     if not api_key:
@@ -208,5 +211,17 @@ def research_topic(idea: str, genre: str) -> str:
     )
 
     prompt = RESEARCH_PROMPT.format(idea=idea, genre=genre)
-    response = model.generate_content(prompt)
-    return response.text
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except (_gapi_exc.ResourceExhausted, _gapi_exc.TooManyRequests) as exc:
+        # Free-tier daily or per-minute quota exceeded — use local fallback
+        # so the user can still generate a novel without waiting for the quota reset.
+        quota_note = (
+            "RESEARCH NOTES (API quota exceeded — local fallback used)\n\n"
+            "The Gemini API returned a quota-exceeded error (429).  "
+            "Novel generation will continue using built-in genre knowledge.\n"
+            "To retry with AI research, wait until your free-tier quota resets "
+            "(typically at midnight Pacific time) or upgrade your Google AI plan.\n\n"
+        )
+        return quota_note + _local_research_fallback(idea, genre)

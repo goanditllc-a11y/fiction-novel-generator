@@ -195,9 +195,9 @@ Each file has `# TO EXTEND:` comments at key extension points.
 | *"No Gemini API key found"* | The app will use built-in genre knowledge automatically. For richer research, click ⚙ Settings and enter your free key |
 | *"Failed to install dependencies"* | Run Command Prompt as Administrator and re-run `setup_and_run.bat` |
 | App window is blank or crashes | Make sure you're using Python 3.9+ (`python --version`) |
-| API quota error (`GenerateRequestsPerDay…`) | Already fixed — generation now runs locally; only 1 API call is made per novel |
+| API quota error (`GenerateRequestsPerDay…`) | The app now catches quota errors and continues with built-in genre knowledge automatically — no action needed |
 | Generation takes a long time | Normal for large chapter counts — all generation is local so speed depends on your PC |
-| API quota exceeded on research call | You've hit the free daily limit. Wait until it resets (midnight Pacific) or generate without a key |
+| API quota exceeded on research call | The app automatically falls back to local genre knowledge; your novel will still be generated completely |
 
 ---
 
