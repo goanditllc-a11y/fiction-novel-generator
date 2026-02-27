@@ -72,14 +72,21 @@ echo.
 :: Step 4: Create .env if it does not exist
 :: --------------------------------------------------
 if not exist ".env" (
-    echo [4/4] First-time setup: Setting up your API key...
+    echo [4/4] API key setup ^(OPTIONAL^)...
     echo.
-    echo You need a free Gemini API key to use this app.
-    echo Get one at: https://aistudio.google.com/app/apikey
+    echo A free Gemini API key enables richer, research-backed novel generation.
+    echo WITHOUT a key the app still generates complete novels using built-in genre knowledge.
     echo.
-    set /p API_KEY="Paste your Gemini API key here and press Enter: "
-    echo GEMINI_API_KEY=%API_KEY%> .env
-    echo API key saved to .env
+    echo Get a free key at: https://aistudio.google.com/app/apikey
+    echo.
+    set /p API_KEY="Paste your Gemini API key and press Enter  (or just press Enter to skip): "
+    if defined API_KEY (
+        echo GEMINI_API_KEY=%API_KEY%> .env
+        echo API key saved to .env
+    ) else (
+        echo No key entered. The app will run in offline mode.
+        echo # No API key - app will use built-in genre knowledge for generation> .env
+    )
 ) else (
     echo [4/4] .env file already exists. Skipping API key setup.
     echo       (Use the Settings button inside the app to update it.)

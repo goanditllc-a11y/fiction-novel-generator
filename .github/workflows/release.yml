@@ -1,0 +1,63 @@
+name: Build & Publish Download Package
+
+# Runs on every push so the release ZIP is always up-to-date.
+'on':
+  push:
+    branches: ["copilot/build-fiction-novel-generator", "main"]
+
+# Ensure only one release job runs at a time to avoid race conditions
+# when multiple pushes happen in quick succession.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # required to create / update releases
+
+jobs:
+  release:
+    name: Package & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Check out the repository ──────────────────────────────
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # ── 2. Build the clean ZIP ────────────────────────────────────
+      # Remove Python cache files first so the simple exclusion patterns
+      # in the zip step handle all cases (including nested directories).
+      - name: Create release ZIP
+        run: |
+          # Remove Python cache files so no exclusion-pattern edge cases remain
+          find . -name "*.pyc" -delete
+          find . -name "*.pyo" -delete
+          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+          zip -r /tmp/fiction-novel-generator.zip . \
+            --exclude ".git/*"    \
+            --exclude "venv/*"    \
+            --exclude ".env"      \
+            --exclude "novels/*"  \
+            --exclude "Thumbs.db" \
+            --exclude ".DS_Store"
+
+          echo "ZIP size: $(du -sh /tmp/fiction-novel-generator.zip | cut -f1)"
+
+      # ── 3. Create / update the 'latest' release ───────────────────
+      # Delete and recreate so the asset is always current.
+      # Release notes are read from .github/RELEASE_NOTES.md to keep
+      # them easy to update without touching the workflow.
+      - name: Publish latest release
+        run: |
+          # Remove previous 'latest' release if it exists (ignore errors)
+          gh release delete latest --yes 2>/dev/null || true
+          # Remove the tag so it can be recreated at the current commit
+          git push origin :refs/tags/latest 2>/dev/null || true
+
+          gh release create latest \
+            --title "Fiction Novel Generator — Download Latest" \
+            --notes-file .github/RELEASE_NOTES.md \
+            /tmp/fiction-novel-generator.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

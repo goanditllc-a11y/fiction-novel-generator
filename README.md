@@ -6,16 +6,21 @@ A Windows desktop application that turns a simple text prompt into a full-length
 
 ## ⬇️ Download the App
 
-**[Click here to download the ZIP][zip-download]**
+**[⬇️ Download fiction-novel-generator.zip][zip-release]**
 
-1. Click the link above — a ZIP file will download automatically
+1. Click the link above — the ZIP file downloads automatically
 2. Extract it anywhere on your PC (e.g. `Documents\fiction-novel-generator`)
 3. Double-click **`setup_and_run.bat`** inside the extracted folder
-4. Follow the on-screen prompts (install Python once, paste your free Gemini API key)
+4. The API key prompt is **optional** — press Enter to skip it and generate novels offline
+5. The app opens automatically ✅
 
 Full step-by-step instructions are in the [Quick Start](#quick-start-windows) section below.
 
-[zip-download]: https://github.com/goanditllc-a11y/fiction-novel-generator/archive/refs/heads/copilot/build-fiction-novel-generator.zip
+> **Alternative download:** If the link above doesn't work, use the
+> [branch ZIP download][zip-branch] (same files, different packaging).
+
+[zip-release]: https://github.com/goanditllc-a11y/fiction-novel-generator/releases/download/latest/fiction-novel-generator.zip
+[zip-branch]: https://github.com/goanditllc-a11y/fiction-novel-generator/archive/refs/heads/copilot/build-fiction-novel-generator.zip
 
 ---
 
@@ -72,7 +77,7 @@ This means a 10-chapter novel uses **exactly one** API call instead of the 13+ c
 
 ### Step 2 — Download this app
 
-1. **[Click here to download the ZIP][zip-download]** — the file will save to your Downloads folder automatically
+1. **[⬇️ Download fiction-novel-generator.zip][zip-release]** — the file will save to your Downloads folder automatically
 2. Skip to Step 3 below to extract it
 
 ### Step 3 — Extract the ZIP
@@ -88,8 +93,8 @@ This means a 10-chapter novel uses **exactly one** API call instead of the 13+ c
 1. Inside the extracted folder, **double-click `setup_and_run.bat`**
    - A black Command Prompt window opens — this is normal
    - It checks Python, creates a virtual environment, and installs the required packages
-   - When it asks **"Paste your Gemini API key"**, paste your key and press Enter  
-     *(See "How to Get a Gemini API Key" below if you don't have one yet)*
+   - When it asks for your Gemini API key, you can **paste your key and press Enter** or **just press Enter to skip**  
+     *(Without a key the app still generates complete novels using built-in genre knowledge)*
 2. The app window opens automatically when setup is complete 🎉
 
 ### Launching the app after the first time
