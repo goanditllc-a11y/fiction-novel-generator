@@ -70,7 +70,8 @@ class Humanizer:
             if len(words) <= 5 and i + 1 < len(sentences):
                 next_s = sentences[i + 1]
                 # join with a comma instead of period
-                merged = s.rstrip('.!?') + ", " + next_s[0].lower() + next_s[1:]
+                lowered = next_s[0].lower() + next_s[1:] if len(next_s) > 1 else next_s[0].lower()
+                merged = s.rstrip('.!?') + ", " + lowered
                 result_sentences.append(merged)
                 i += 2
                 continue

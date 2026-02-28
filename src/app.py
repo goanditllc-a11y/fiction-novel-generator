@@ -297,7 +297,8 @@ class MainWindow(QMainWindow):
         # Prominent De-AI button
         deai_btn = QPushButton("🤖 De-AI")
         deai_btn.setToolTip("Detect and clean AI-generated patterns")
-        deai_btn.setAccessibleName("De-AI: Detect and clean AI-generated patterns")
+        deai_btn.setAccessibleName("De-AI")
+        deai_btn.setAccessibleDescription("Detect and clean AI-generated patterns")
         deai_btn.clicked.connect(self._run_deai_full)
         tb.addWidget(deai_btn)
 
