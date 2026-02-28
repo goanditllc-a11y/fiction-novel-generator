@@ -106,22 +106,28 @@ def save_novel(
     num_chapters: int,
     title: Optional[str] = None,
     sequel_of: Optional[str] = None,
+    rewrite_of: Optional[str] = None,
+    style_instruction: Optional[str] = None,
 ) -> str:
     """
     Saves all novel artefacts to the organised folder structure.
 
     Args:
-        novel_text:   The full compiled novel (plain text).
-        research:     Research notes string.
-        characters:   Character profiles string.
-        plot_outline: Plot architecture string.
-        idea:         The original user idea/prompt.
-        genre:        The selected genre.
-        num_chapters: Number of chapters generated.
-        title:        Optional override for the novel title. If None, the
-                      title is extracted from the novel text.
-        sequel_of:    If this novel is a sequel, pass the original novel's
-                      idea/title here so it is recorded in metadata.json.
+        novel_text:        The full compiled novel (plain text).
+        research:          Research notes string.
+        characters:        Character profiles string.
+        plot_outline:      Plot architecture string.
+        idea:              The original user idea/prompt.
+        genre:             The selected genre.
+        num_chapters:      Number of chapters generated.
+        title:             Optional override for the novel title. If None, the
+                           title is extracted from the novel text.
+        sequel_of:         If this novel is a sequel, pass the original novel's
+                           idea/title here so it is recorded in metadata.json.
+        rewrite_of:        If this novel is a rewrite, pass an excerpt of the
+                           original novel text to record the relationship.
+        style_instruction: The style directive applied when rewriting (e.g.
+                           "make it more literary"), recorded in metadata.json.
 
     Returns:
         The absolute path to the version directory where files were saved.
@@ -187,6 +193,10 @@ def save_novel(
     }
     if sequel_of:
         metadata["sequel_of"] = sequel_of
+    if rewrite_of:
+        metadata["rewrite_of"] = rewrite_of
+    if style_instruction:
+        metadata["style_instruction"] = style_instruction
     with open(
         os.path.join(version_dir, "metadata.json"), "w", encoding="utf-8"
     ) as fh:

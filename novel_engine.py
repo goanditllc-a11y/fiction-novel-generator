@@ -31,12 +31,38 @@ TO EXTEND: Add new generation phases by adding methods to
 
 from __future__ import annotations
 
+import re
 from typing import Callable, List, Optional
 
 import web_researcher
 import ollama_generator
 from local_generator import LocalNovelGenerator
 from config import OLLAMA_TARGET_WORDS_PER_CHAPTER
+
+
+# ---------------------------------------------------------------------------
+# Chapter-splitting helpers (used by rewrite_novel)
+# ---------------------------------------------------------------------------
+
+def _split_chapters(novel_text: str) -> "list[str]":
+    """
+    Splits a compiled novel into a list of text blocks, one per chapter
+    (plus a leading block for the header / title page if present).
+
+    Chapters are delimited by the '=' * 60 separator lines that
+    _compile() inserts between them.
+    """
+    separator = re.compile(r"={10,}")
+    # Use re.split to keep delimiters so we can reconstruct the text
+    parts = separator.split(novel_text)
+    # Strip empty segments
+    return [p.strip() for p in parts if p.strip()]
+
+
+def _is_chapter_block(block: str) -> bool:
+    """Returns True if the block looks like a chapter (starts with 'Chapter N:')."""
+    first_line = block.lstrip().split("\n")[0].strip()
+    return bool(re.match(r"^Chapter\s+\d+", first_line, re.IGNORECASE))
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +154,130 @@ class NovelEngine:
         result["research"] = research
         self._status("✅ Novel generation complete!")
         return result
+
+    def rewrite_novel(
+        self,
+        original_result: dict,
+        style_instruction: str,
+    ) -> "dict[str, str]":
+        """
+        Rewrites the prose of every chapter in *original_result* according to
+        *style_instruction* while keeping the plot, characters, and structure
+        completely intact.
+
+        When Ollama is available each chapter is sent to the LLM with the
+        style instruction.  When Ollama is absent the novel is re-generated
+        from scratch with the style instruction injected into the idea, which
+        produces a new variation rather than a strict prose rewrite.
+
+        Args:
+            original_result:    Result dict returned by generate_novel().
+            style_instruction:  Free-text style directive, e.g.
+                                 "make it more literary and precise" or
+                                 "make it darker and more suspenseful".
+
+        Returns:
+            A result dict identical in structure to generate_novel()'s output
+            plus two extra keys:
+              "rewrite_of"         — first 200 chars of the original novel text
+              "style_instruction"  — the style directive that was applied
+        """
+        # ── Detect Ollama ──────────────────────────────────────────────
+        ollama_model: Optional[str] = None
+        if ollama_generator.is_available():
+            ollama_model = ollama_generator.get_best_model()
+            if ollama_model:
+                self._status(f"✅ Ollama detected — using model: {ollama_model}")
+            else:
+                self._status(
+                    "⚠️  Ollama running but no models pulled — "
+                    "re-generating with style hint instead."
+                )
+        else:
+            self._status(
+                "ℹ️  Ollama not detected — re-generating novel with style hint.  "
+                "Install Ollama from https://ollama.ai for chapter-level rewrites."
+            )
+
+        if ollama_model:
+            result = self._rewrite_with_ollama(
+                original_result, style_instruction, ollama_model
+            )
+        else:
+            result = self._rewrite_via_regeneration(
+                original_result, style_instruction
+            )
+
+        result["rewrite_of"] = original_result["novel"][:200]
+        result["style_instruction"] = style_instruction
+        return result
+
+    def _rewrite_with_ollama(
+        self,
+        original_result: dict,
+        style_instruction: str,
+        ollama_model: str,
+    ) -> "dict[str, str]":
+        """Rewrites each chapter individually via Ollama."""
+        original_novel = original_result["novel"]
+        chapter_blocks = _split_chapters(original_novel)
+
+        if not chapter_blocks:
+            # Fallback: rewrite the whole text as a single block
+            chapter_blocks = [original_novel]
+
+        total_chapters = sum(1 for b in chapter_blocks if _is_chapter_block(b))
+        rewritten: list[str] = []
+        header_block: list[str] = []   # preamble before Chapter 1
+        chapter_counter = 0
+
+        for block in chapter_blocks:
+            # The header/preamble (title page, TOC, etc.) is kept verbatim
+            if not _is_chapter_block(block):
+                header_block.append(block)
+                continue
+
+            chapter_counter += 1
+            self._status(
+                f"✏️  Rewriting chapter {chapter_counter}/{total_chapters} via Ollama"
+            )
+            rewritten_ch = ollama_generator.rewrite_chapter(
+                model=ollama_model,
+                chapter_text=block,
+                style_instruction=style_instruction,
+                status_callback=self._status,
+            )
+            rewritten.append(rewritten_ch)
+
+        # Re-assemble: keep original header, replace chapter text
+        separator = "\n\n" + "=" * 60 + "\n\n"
+        new_novel = separator.join(header_block + rewritten)
+
+        result = dict(original_result)
+        result["novel"] = new_novel
+        self._status("✅ Chapter-level rewrite complete!")
+        return result
+
+    def _rewrite_via_regeneration(
+        self,
+        original_result: dict,
+        style_instruction: str,
+    ) -> "dict[str, str]":
+        """
+        Fallback when Ollama is unavailable: re-runs the full generation
+        pipeline with the style instruction woven into the original idea.
+        """
+        original_idea = original_result.get("idea", "a compelling story")
+        enriched_idea = (
+            f"{original_idea}\n\n"
+            f"[Style directive: {style_instruction}]"
+        )
+        # Infer chapter count from the original, counting only real chapter blocks
+        chapter_count = original_result.get("num_chapters") or sum(
+            1 for b in _split_chapters(original_result["novel"]) if _is_chapter_block(b)
+        ) or 10
+        genre = original_result.get("genre", "General")
+        return self.generate_novel(enriched_idea, genre, chapter_count)
 
     def generate_sequels(
         self,

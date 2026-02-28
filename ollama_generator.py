@@ -44,6 +44,7 @@ TO EXTEND: Add support for custom Ollama hosts (e.g. a LAN server) by
 from __future__ import annotations
 
 import json
+import re
 from typing import Callable, List, Optional
 
 try:
@@ -388,6 +389,68 @@ def write_chapter(
         result = heading + "\n" + ("─" * 50) + "\n\n" + result
     elif "\n" not in result[:80]:
         result = result[:len(heading)] + "\n" + ("─" * 50) + "\n\n" + result[len(heading):].lstrip()
+
+    return result
+
+
+def rewrite_chapter(
+    model: str,
+    chapter_text: str,
+    style_instruction: str,
+    status_callback: Optional[Callable[[str], None]] = None,
+) -> str:
+    """
+    Rewrites an existing chapter according to a free-text style instruction.
+
+    The plot, characters, and events are kept intact; only the prose style
+    is transformed.  Examples of *style_instruction*:
+        "make it more literary and precise"
+        "make it more emotionally resonant"
+        "make it darker and more suspenseful"
+        "make it more realistic and grounded"
+
+    Args:
+        model:             Ollama model name (e.g. "llama3.2").
+        chapter_text:      The full existing chapter text to rewrite.
+        style_instruction: Free-text description of the desired prose change.
+        status_callback:   Called with progress dots during streaming.
+
+    Returns:
+        The rewritten chapter text.
+    """
+    # Extract the chapter heading from the first non-empty line
+    heading = ""
+    for line in chapter_text.splitlines():
+        stripped = line.strip()
+        if stripped:
+            heading = stripped
+            break
+
+    word_count = len(chapter_text.split())
+
+    prompt = (
+        f"You are a skilled literary editor.\n\n"
+        f"TASK: Rewrite the chapter below to {style_instruction}.\n\n"
+        f"RULES:\n"
+        f"• Keep exactly the same plot events, characters, and story beats.\n"
+        f"• Keep approximately the same word count (~{word_count} words).\n"
+        f"• Transform only the prose style, voice, tone, and language.\n"
+        f"• Preserve the chapter heading on the very first line.\n"
+        f"• Do NOT add author notes, preamble, or commentary — output chapter text only.\n\n"
+        f"ORIGINAL CHAPTER:\n"
+        f"{'─' * 60}\n"
+        f"{chapter_text}\n"
+        f"{'─' * 60}\n\n"
+        f"REWRITTEN CHAPTER (begin with '{heading}'):\n"
+    )
+
+    result = _generate_text(
+        model, prompt, target_words=word_count, status_callback=status_callback
+    )
+
+    # Ensure heading is present — check for "Chapter N" pattern at start
+    if heading and not re.match(r"^Chapter\s+\d+", result.strip(), re.IGNORECASE):
+        result = heading + "\n" + ("─" * 50) + "\n\n" + result.lstrip()
 
     return result
 

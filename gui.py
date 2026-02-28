@@ -49,6 +49,7 @@ class NovelGeneratorApp(tk.Tk):
         self._last_chapters: int = DEFAULT_CHAPTERS
         self._sequel_original_idea: str = ""  # original idea preserved during sequel generation
         self._sequel_idea: str = ""           # premise entered for the current sequel batch
+        self._rewrite_original_result: Optional[dict] = None  # original novel for rewrite comparison
 
         style = ttk.Style(self)
         for preferred in ("clam", "alt", "default"):
@@ -200,6 +201,15 @@ class NovelGeneratorApp(tk.Tk):
         )
         self.sequel_btn.pack(fill=tk.X, pady=(4, 0))
 
+        # Rewrite-with-prompt button (enabled once a novel has been generated)
+        self.rewrite_btn = ttk.Button(
+            parent,
+            text="✏️  Rewrite Novel…",
+            command=self._start_rewrite,
+            state=tk.DISABLED,
+        )
+        self.rewrite_btn.pack(fill=tk.X, pady=(4, 0))
+
         ttk.Separator(parent, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=6)
 
         # Progress area
@@ -318,6 +328,7 @@ class NovelGeneratorApp(tk.Tk):
         self.save_btn.config(state=tk.NORMAL)
         self.generate_btn.config(state=tk.NORMAL)
         self.sequel_btn.config(state=tk.NORMAL)
+        self.rewrite_btn.config(state=tk.NORMAL)
         self._append_status(
             f"\n🎉 Novel ready!  "
             f"~{word_count:,} words (~{pages_est} pages).  "
@@ -349,6 +360,8 @@ class NovelGeneratorApp(tk.Tk):
                 genre=self._last_genre,
                 num_chapters=self._last_chapters,
                 sequel_of=self._last_result.get("sequel_of") or None,
+                rewrite_of=self._last_result.get("rewrite_of") or None,
+                style_instruction=self._last_result.get("style_instruction") or None,
             )
             self._append_status(f"\n💾 Saved to: {saved_dir}\n")
             messagebox.showinfo("Saved!", f"Novel saved to:\n{saved_dir}")
@@ -446,6 +459,108 @@ class NovelGeneratorApp(tk.Tk):
                 "Click 'Save Novel' to export.\n"
             )
 
+    def _start_rewrite(self) -> None:
+        """Opens the rewrite setup dialog, auto-saves original, then rewrites."""
+        if not self._last_result:
+            messagebox.showwarning(
+                "No Novel",
+                "Generate a novel first before using the rewrite tool.",
+            )
+            return
+
+        dialog = RewriteSetupDialog(self)
+        self.wait_window(dialog)
+        if not dialog.result:
+            return  # user cancelled
+
+        style_instruction = dialog.result
+
+        # ── Auto-save the original so it is always preserved on disk ───
+        self._append_status(f"\n{'=' * 50}\n")
+        self._append_status("💾 Auto-saving original novel before rewriting…\n")
+        try:
+            saved_dir = file_manager.save_novel(
+                novel_text=self._last_result["novel"],
+                research=self._last_result.get("research", ""),
+                characters=self._last_result.get("characters", ""),
+                plot_outline=self._last_result.get("plot_outline", ""),
+                idea=self._last_idea,
+                genre=self._last_genre,
+                num_chapters=self._last_chapters,
+                sequel_of=self._last_result.get("sequel_of") or None,
+            )
+            self._append_status(f"✅ Original saved to: {saved_dir}\n")
+        except Exception as exc:  # noqa: BLE001
+            self._append_status(f"⚠️  Could not auto-save original: {exc}\n")
+
+        # Store original for comparison dialog
+        self._rewrite_original_result = dict(self._last_result)
+
+        self.generate_btn.config(state=tk.DISABLED)
+        self.save_btn.config(state=tk.DISABLED)
+        self.sequel_btn.config(state=tk.DISABLED)
+        self.rewrite_btn.config(state=tk.DISABLED)
+
+        self._append_status(
+            f"✏️  Rewriting novel: \"{style_instruction}\"…\n"
+        )
+
+        threading.Thread(
+            target=self._run_rewrite,
+            args=(style_instruction,),
+            daemon=True,
+        ).start()
+
+    def _run_rewrite(self, style_instruction: str) -> None:
+        def status(msg: str) -> None:
+            self.after(0, self._append_status, msg + "\n")
+
+        try:
+            engine = novel_engine.NovelEngine(status_callback=status)
+            rewrite_result = engine.rewrite_novel(self._rewrite_original_result, style_instruction)
+            self.after(0, self._on_rewrite_complete, rewrite_result)
+        except OSError as exc:
+            self.after(0, self._on_rewrite_error, f"Network or file error:\n{exc}")
+        except Exception as exc:  # noqa: BLE001
+            self.after(0, self._on_rewrite_error, f"Unexpected error:\n{exc}")
+
+    def _on_rewrite_complete(self, rewrite_result: dict) -> None:
+        self.generate_btn.config(state=tk.NORMAL)
+        self.sequel_btn.config(state=tk.NORMAL)
+        self.rewrite_btn.config(state=tk.NORMAL)
+
+        instruction = rewrite_result.get("style_instruction", "")
+        self._append_status(f"\n✅ Rewrite complete — opening comparison dialog…\n")
+
+        dialog = RewriteSelectionDialog(
+            self,
+            original_result=self._rewrite_original_result,
+            rewritten_result=rewrite_result,
+            style_instruction=instruction,
+        )
+        self.wait_window(dialog)
+
+        if dialog.selected_result is not None:
+            self._last_result = dialog.selected_result
+            novel_text = self._last_result["novel"]
+            word_count = len(novel_text.split())
+            pages_est = word_count // 250
+            self._set_preview(novel_text)
+            self.save_btn.config(state=tk.NORMAL)
+            label = "Rewritten" if dialog.selected_result is rewrite_result else "Original"
+            self._append_status(
+                f"\n🎉 {label} version loaded!  "
+                f"~{word_count:,} words (~{pages_est} pages).  "
+                "Click 'Save Novel' to export.\n"
+            )
+
+    def _on_rewrite_error(self, error_msg: str) -> None:
+        self.generate_btn.config(state=tk.NORMAL)
+        self.sequel_btn.config(state=tk.NORMAL)
+        self.rewrite_btn.config(state=tk.NORMAL)
+        self._append_status(f"\n❌ Rewrite error: {error_msg}\n")
+        messagebox.showerror("Rewrite Error", error_msg)
+
     def _new_novel(self) -> None:
         if self._last_result:
             if not messagebox.askyesno("New Novel", "Clear the current novel and start fresh?"):
@@ -461,6 +576,7 @@ class NovelGeneratorApp(tk.Tk):
         self._clear_status()
         self.save_btn.config(state=tk.DISABLED)
         self.sequel_btn.config(state=tk.DISABLED)
+        self.rewrite_btn.config(state=tk.DISABLED)
         self._last_result = None
 
     # ------------------------------------------------------------------
@@ -814,3 +930,243 @@ class SequelSelectionDialog(tk.Toplevel):
         w, h = self.winfo_width(), self.winfo_height()
         self.geometry(f"+{px + (pw - w) // 2}+{py + (ph - h) // 2}")
 
+
+
+# ---------------------------------------------------------------------------
+# Rewrite Setup Dialog
+# ---------------------------------------------------------------------------
+
+class RewriteSetupDialog(tk.Toplevel):
+    """
+    Modal dialog that collects the style instruction for rewriting the novel.
+
+    Offers a free-text entry and a row of quick-preset buttons so the user
+    can apply common transformations in one click.
+    """
+
+    _PRESETS = [
+        "make it more literary and precise",
+        "make it more emotionally resonant",
+        "make it more realistic and grounded",
+        "make it more engrossing and page-turning",
+        "make it darker and more suspenseful",
+        "give it a lighter, more hopeful tone",
+        "make the dialogue sharper and wittier",
+        "make the descriptions more vivid and sensory",
+    ]
+
+    def __init__(self, parent: tk.Tk) -> None:
+        super().__init__(parent)
+        self.title("Rewrite Novel with Style Prompt")
+        self.resizable(False, False)
+        self.grab_set()
+
+        self.result: Optional[str] = None  # set by _ok(); None means cancelled
+
+        pad: dict = {"padx": 12, "pady": 5}
+
+        ttk.Label(
+            self,
+            text="Rewrite Novel",
+            font=("Segoe UI", 12, "bold"),
+        ).grid(row=0, column=0, columnspan=2, sticky=tk.W, **pad)
+
+        ttk.Label(
+            self,
+            text=(
+                "Enter a style directive below, or click a preset.\n"
+                "The original will be auto-saved before rewriting begins."
+            ),
+            foreground="#444444",
+            justify=tk.LEFT,
+        ).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=12, pady=(0, 6))
+
+        # Style instruction entry
+        ttk.Label(self, text="Style instruction:").grid(
+            row=2, column=0, sticky=tk.W, **pad
+        )
+        self._instruction_var = tk.StringVar(value="make it more literary and precise")
+        ttk.Entry(
+            self, textvariable=self._instruction_var, width=55, font=("Segoe UI", 10)
+        ).grid(row=2, column=1, padx=(0, 12), pady=5, sticky=tk.W)
+
+        # Quick-preset buttons
+        presets_frame = ttk.LabelFrame(self, text="Quick presets", padding=8)
+        presets_frame.grid(
+            row=3, column=0, columnspan=2, padx=12, pady=(2, 8), sticky=tk.EW
+        )
+        for idx, preset in enumerate(self._PRESETS):
+            col = idx % 2
+            row = idx // 2
+            # Capitalise first word for display
+            display_text = preset[:1].upper() + preset[1:]
+            ttk.Button(
+                presets_frame,
+                text=display_text,
+                command=lambda p=preset: self._instruction_var.set(p),
+                width=40,
+            ).grid(row=row, column=col, padx=4, pady=2, sticky=tk.W)
+
+        btn_frame = ttk.Frame(self)
+        btn_frame.grid(row=4, column=0, columnspan=2, pady=(4, 10))
+        ttk.Button(btn_frame, text="Rewrite Novel", command=self._ok).pack(
+            side=tk.LEFT, padx=(0, 8)
+        )
+        ttk.Button(btn_frame, text="Cancel", command=self.destroy).pack(side=tk.LEFT)
+
+        self._center(parent)
+
+    def _ok(self) -> None:
+        instruction = self._instruction_var.get().strip()
+        if not instruction:
+            messagebox.showwarning(
+                "No Instruction",
+                "Please enter a style instruction or choose a preset.",
+                parent=self,
+            )
+            return
+        self.result = instruction
+        self.destroy()
+
+    def _center(self, parent: tk.Tk) -> None:
+        self.update_idletasks()
+        pw, ph = parent.winfo_width(), parent.winfo_height()
+        px, py = parent.winfo_x(), parent.winfo_y()
+        w, h = self.winfo_width(), self.winfo_height()
+        self.geometry(f"+{px + (pw - w) // 2}+{py + (ph - h) // 2}")
+
+
+# ---------------------------------------------------------------------------
+# Rewrite Selection Dialog
+# ---------------------------------------------------------------------------
+
+class RewriteSelectionDialog(tk.Toplevel):
+    """
+    Modal dialog that displays the original and rewritten novel side-by-side.
+
+    The user can preview both and choose which version to load into the main
+    window.  Either version can then be independently saved from the main
+    window (the original is already on disk from the auto-save).
+    """
+
+    def __init__(
+        self,
+        parent: tk.Tk,
+        original_result: dict,
+        rewritten_result: dict,
+        style_instruction: str,
+    ) -> None:
+        super().__init__(parent)
+        self.title("Compare Original vs Rewritten Novel")
+        self.geometry("1200x720")
+        self.minsize(900, 500)
+        self.grab_set()
+
+        self.original_result = original_result
+        self.rewritten_result = rewritten_result
+        self.style_instruction = style_instruction
+        self.selected_result: Optional[dict] = None
+
+        self._build_ui()
+        self._center(parent)
+
+    def _build_ui(self) -> None:
+        _PREVIEW_CHARS = 8000
+
+        header = ttk.Frame(self, padding=(10, 8))
+        header.pack(fill=tk.X)
+
+        ttk.Label(
+            header,
+            text=f'Rewrite applied: "{self.style_instruction}"',
+            font=("Segoe UI", 11, "bold"),
+        ).pack(side=tk.LEFT)
+
+        ttk.Separator(self, orient=tk.HORIZONTAL).pack(fill=tk.X)
+
+        # ── Split view ────────────────────────────────────────────────
+        paned = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
+        paned.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        left = ttk.Frame(paned, padding=4)
+        right = ttk.Frame(paned, padding=4)
+        paned.add(left, weight=1)
+        paned.add(right, weight=1)
+
+        orig_wc = len(self.original_result["novel"].split())
+        rew_wc = len(self.rewritten_result["novel"].split())
+
+        ttk.Label(
+            left,
+            text=f"Original  (~{orig_wc:,} words)",
+            font=("Segoe UI", 10, "bold"),
+        ).pack(anchor=tk.W)
+        orig_preview = scrolledtext.ScrolledText(
+            left,
+            state=tk.DISABLED,
+            font=("Georgia", 10),
+            wrap=tk.WORD,
+            padx=8,
+            pady=6,
+        )
+        orig_preview.pack(fill=tk.BOTH, expand=True, pady=(4, 0))
+
+        ttk.Label(
+            right,
+            text=f"Rewritten  (~{rew_wc:,} words)",
+            font=("Segoe UI", 10, "bold"),
+            foreground="#1a5c1a",
+        ).pack(anchor=tk.W)
+        rew_preview = scrolledtext.ScrolledText(
+            right,
+            state=tk.DISABLED,
+            font=("Georgia", 10),
+            wrap=tk.WORD,
+            padx=8,
+            pady=6,
+        )
+        rew_preview.pack(fill=tk.BOTH, expand=True, pady=(4, 0))
+
+        def _set(widget: scrolledtext.ScrolledText, text: str) -> None:
+            preview = text[:_PREVIEW_CHARS]
+            if len(text) > _PREVIEW_CHARS:
+                preview += "\n\n[... preview truncated — full novel available after saving ...]"
+            widget.config(state=tk.NORMAL)
+            widget.insert("1.0", preview)
+            widget.config(state=tk.DISABLED)
+
+        _set(orig_preview, self.original_result["novel"])
+        _set(rew_preview, self.rewritten_result["novel"])
+
+        # ── Bottom action buttons ──────────────────────────────────────
+        btn_frame = ttk.Frame(self, padding=(10, 6))
+        btn_frame.pack(fill=tk.X)
+
+        ttk.Button(
+            btn_frame,
+            text="📄  Use Original",
+            command=lambda: self._use(self.original_result),
+        ).pack(side=tk.LEFT, padx=(0, 6))
+
+        ttk.Button(
+            btn_frame,
+            text="✅  Use Rewritten Version",
+            command=lambda: self._use(self.rewritten_result),
+        ).pack(side=tk.LEFT, padx=(0, 6))
+
+        ttk.Button(
+            btn_frame,
+            text="Cancel",
+            command=self.destroy,
+        ).pack(side=tk.LEFT)
+
+    def _use(self, result: dict) -> None:
+        self.selected_result = result
+        self.destroy()
+
+    def _center(self, parent: tk.Tk) -> None:
+        self.update_idletasks()
+        pw, ph = parent.winfo_width(), parent.winfo_height()
+        px, py = parent.winfo_x(), parent.winfo_y()
+        w, h = self.winfo_width(), self.winfo_height()
+        self.geometry(f"+{px + (pw - w) // 2}+{py + (ph - h) // 2}")
