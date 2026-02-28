@@ -36,27 +36,38 @@ jobs:
         continue-on-error: true
 
       - name: Build executable
-        run: pyinstaller app.spec --clean --noconfirm
+        run: |
+          if (Test-Path "app.spec") {
+            pyinstaller app.spec --clean --noconfirm
+          } elseif (Test-Path "build.bat") {
+            cmd /c build.bat
+          } else {
+            $pyArgs = @("--name", "FictionNovelEditor", "--onedir", "--windowed")
+            if (Test-Path "assets/icon.ico") { $pyArgs += "--icon=assets/icon.ico" }
+            $pyArgs += if (Test-Path "src/main.py") { "src/main.py" } else { "main.py" }
+            pyinstaller @pyArgs
+          }
         shell: pwsh
 
-      - name: List dist/ contents
+      - name: List build output
         run: |
           Write-Host "=== Contents of dist/ ==="
-          Get-ChildItem -Path dist -Recurse | Select-Object FullName
+          if (Test-Path "dist") { Get-ChildItem -Path dist -Recurse | Select-Object FullName } else { Write-Host "dist/ does not exist" }
         shell: pwsh
 
-      - name: ZIP build output
+      - name: Create ZIP archive
         run: |
-          $zipName = "FictionNovelEditor-Windows-x64.zip"
-          $distDir = Get-ChildItem -Path dist -Directory | Select-Object -First 1
+          $distDir = Get-ChildItem -Path dist -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($distDir) {
-              Compress-Archive -Path "$($distDir.FullName)\*" -DestinationPath $zipName
-          } elseif (Get-ChildItem -Path dist -Filter "*.exe" -ErrorAction SilentlyContinue) {
-              # Single-file mode - just zip the exe
-              Compress-Archive -Path "dist\*" -DestinationPath $zipName
+            Write-Host "Found output directory: $($distDir.FullName)"
+            Compress-Archive -Path "$($distDir.FullName)\*" -DestinationPath FictionNovelEditor-Windows-x64.zip
+          } elseif (Test-Path "dist\*.exe") {
+            Write-Host "Found single-file output"
+            Compress-Archive -Path "dist\*" -DestinationPath FictionNovelEditor-Windows-x64.zip
           } else {
-              Write-Error "No build output found in dist/"
-              exit 1
+            Write-Error "No build output found in dist/"
+            Get-ChildItem -Recurse | Where-Object { $_.Extension -eq '.exe' } | Select-Object FullName
+            exit 1
           }
         shell: pwsh
 
