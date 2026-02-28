@@ -36,18 +36,28 @@ jobs:
         continue-on-error: true
 
       - name: Build executable
+        run: pyinstaller app.spec --clean --noconfirm
+        shell: pwsh
+
+      - name: List dist/ contents
         run: |
-          if (Test-Path "build.bat") {
-            cmd /c build.bat
-          } elseif (Test-Path "app.spec") {
-            pyinstaller app.spec --clean
-          } else {
-            pyinstaller --name FictionNovelEditor --onedir --windowed --icon=assets/icon.ico src/main.py
-          }
+          Write-Host "=== Contents of dist/ ==="
+          Get-ChildItem -Path dist -Recurse | Select-Object FullName
         shell: pwsh
 
       - name: ZIP build output
-        run: Compress-Archive -Path dist\FictionNovelEditor\* -DestinationPath FictionNovelEditor-Windows-x64.zip
+        run: |
+          $zipName = "FictionNovelEditor-Windows-x64.zip"
+          $distDir = Get-ChildItem -Path dist -Directory | Select-Object -First 1
+          if ($distDir) {
+              Compress-Archive -Path "$($distDir.FullName)\*" -DestinationPath $zipName
+          } elseif (Get-ChildItem -Path dist -Filter "*.exe" -ErrorAction SilentlyContinue) {
+              # Single-file mode - just zip the exe
+              Compress-Archive -Path "dist\*" -DestinationPath $zipName
+          } else {
+              Write-Error "No build output found in dist/"
+              exit 1
+          }
         shell: pwsh
 
       - name: Upload build artifact
