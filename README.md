@@ -8,18 +8,20 @@ A Windows desktop application that turns a simple text prompt into a full-length
 
 ### ✅ Download Now (works immediately)
 
-**[⬇️ Download fiction-novel-generator.zip](https://github.com/goanditllc-a11y/fiction-novel-generator/archive/refs/heads/copilot/build-fiction-novel-generator.zip)**
+**[⬇️ Download fiction-novel-generator.zip](https://github.com/goanditllc-a11y/fiction-novel-generator/releases/latest/download/fiction-novel-generator.zip)**
 
 Click the link — the ZIP downloads instantly, no login required.
 
 ### After downloading
 
-1. **Extract** the ZIP anywhere on your PC (right-click → *Extract All…*) — e.g. `Documents\fiction-novel-generator`  
-   *(the extracted folder will be named `fiction-novel-generator-copilot-build-fiction-novel-generator`  — you can rename it anything you like)*
-2. **Double-click `setup_and_run.bat`** inside the extracted folder
-   - A Command Prompt window opens — this is normal
-   - It installs Python packages automatically, then launches the app
+1. **Extract** the ZIP anywhere on your PC (right-click → *Extract All…*) — e.g. `Downloads\fiction-novel-generator`
+2. **Double-click `install.bat`** inside the extracted folder *(recommended)*
+   - A black Command Prompt window opens — this is normal
+   - It installs Python packages, copies the app to your user folder, and creates **Desktop + Start Menu shortcuts**
 3. The **Fiction Novel Generator** window opens ✅
+4. Next time, open the app from your **Desktop** or the **Start Menu** — no need to find the ZIP again
+
+> **Alternative (no install):** Double-click `setup_and_run.bat` to run the app directly from the extracted folder.
 
 > **No API key needed.** Research uses the free Wikipedia API. For author-quality prose, optionally install [Ollama](https://ollama.ai) and run `ollama pull llama3.2`.
 
@@ -29,8 +31,8 @@ Full step-by-step instructions are in the [Quick Start](#quick-start-windows) se
 
 | Option | Link | Notes |
 |--------|------|-------|
-| **Branch ZIP** *(above)* | [fiction-novel-generator.zip][zip-branch] | Always up-to-date, no login needed |
-| **GitHub Releases** | [releases/latest](https://github.com/goanditllc-a11y/fiction-novel-generator/releases/latest) | Published automatically after merge to `main` |
+| **GitHub Releases** *(above)* | [releases/latest](https://github.com/goanditllc-a11y/fiction-novel-generator/releases/latest) | Always up-to-date, no login needed |
+| **Branch ZIP** | [fiction-novel-generator.zip][zip-branch] | Direct branch archive |
 | **Actions artifact** | [Actions tab → latest run → Artifacts](https://github.com/goanditllc-a11y/fiction-novel-generator/actions/workflows/release.yml) | `fiction-novel-generator` artifact, kept 90 days |
 
 [zip-branch]: https://github.com/goanditllc-a11y/fiction-novel-generator/archive/refs/heads/copilot/build-fiction-novel-generator.zip
@@ -44,6 +46,8 @@ Full step-by-step instructions are in the [Quick Start](#quick-start-windows) se
 3. Click **Research & Generate Novel**
 4. The app researches your topic via Wikipedia, builds a world, creates characters, plots the story arc, and writes every chapter
 5. Read the novel in the preview pane, then save it to your computer
+6. **Optionally:** click **✏️ Rewrite Novel…** to apply a style prompt ("make it more literary", "make it darker", etc.) — the original is auto-saved and you pick which version to keep
+7. **Optionally:** click **✍️ Generate Sequels…** to produce 1–5 independent sequel drafts and choose the best one
 
 ---
 
@@ -119,30 +123,32 @@ Ollama runs open-weight AI language models (Llama 3, Mistral, Phi-3, etc.) entir
 
 ### Step 2 — Download this app
 
-**[⬇️ Click here to download fiction-novel-generator.zip][zip-branch]** — saves to your Downloads folder automatically
+**[⬇️ Click here to download fiction-novel-generator.zip](https://github.com/goanditllc-a11y/fiction-novel-generator/releases/latest/download/fiction-novel-generator.zip)** — saves to your Downloads folder automatically
 
 ### Step 3 — Extract the ZIP
 
 1. Open your **Downloads** folder in File Explorer
 2. Right-click the downloaded ZIP file
 3. Choose **"Extract All…"**
-4. Choose a destination folder (e.g. `C:\Users\YourName\Documents`) and click **Extract**  
-   *(the folder will be created inside — you can rename it from the long default name to just `fiction-novel-generator`)*
-5. Open the extracted folder — you should see files like `setup_and_run.bat`, `main.py`, etc.
+4. Choose a destination folder (e.g. `C:\Users\YourName\Downloads`) and click **Extract**
+5. Open the extracted folder — you should see files like `install.bat`, `setup_and_run.bat`, `main.py`, etc.
 
-### Step 4 — Run the setup (first time only)
+### Step 4 — Install (one-time)
 
-1. Inside the extracted folder, **double-click `setup_and_run.bat`**
+1. Inside the extracted folder, **double-click `install.bat`**
    - A black Command Prompt window opens — this is normal
-   - It checks Python, creates a virtual environment, and installs the required packages (`requests`, `beautifulsoup4`, `python-dotenv`)
+   - It checks Python, copies the app to `%USERPROFILE%\FictionNovelGenerator`, installs packages, and creates Desktop + Start Menu shortcuts
 2. The app window opens automatically when setup is complete 🎉
 
 ### Launching the app after the first time
 
-- Double-click **`Novel_Generator.bat`** inside the folder — that's it
+- Open from your **Desktop** — double-click **Fiction Novel Generator**
+- Or open from the **Start Menu** — search "Fiction Novel Generator"
+- Or double-click **`Novel_Generator.bat`** in the install folder directly
 
 ### Optional: Pin a shortcut to your Desktop
 
+If you skipped the installer and used `setup_and_run.bat` instead:
 - Double-click **`create_shortcut.bat`** once — it adds a **"Fiction Novel Generator"** icon to your Desktop
 
 ---
@@ -157,8 +163,10 @@ Ollama runs open-weight AI language models (Llama 3, Mistral, Phi-3, etc.) entir
 | **Research & Generate Novel** | Starts the 7-phase generation pipeline |
 | **Status / Progress** | Shows live updates as each phase completes |
 | **Novel Preview** | Displays the finished novel — scrollable and readable |
-| **Save Novel** | Saves to `novels/YYYY-MM-DD/Title/v1/` in this folder |
+| **Save Novel** | Saves to `novels/YYYY-MM-DD/Title/v1/` in the install folder |
 | **New Novel** | Clears everything to start fresh |
+| **✏️ Rewrite Novel…** | Apply a style prompt to transform the prose ("make it more literary", "make it darker and more suspenseful", etc.) — the original is auto-saved before rewriting starts, then a side-by-side comparison lets you choose which version to keep and download |
+| **✍️ Generate Sequels…** | Generate 1–5 independent sequel drafts; a selection dialog shows word counts and a preview so you can pick the best one |
 | **↻ Refresh** | Re-checks whether Ollama is running |
 | **⚙ Settings** | Shows Ollama and research configuration |
 
@@ -199,7 +207,8 @@ fiction-novel-generator/
 ├── config.py            ← All configurable settings (Ollama host, defaults, paths)
 ├── requirements.txt     ← Python package dependencies
 ├── .gitignore           ← Keeps generated files out of git
-├── setup_and_run.bat    ← First-time setup + launcher (Windows)
+├── install.bat          ← One-click installer (copies app, creates Desktop + Start Menu shortcuts)
+├── setup_and_run.bat    ← First-time setup + launcher (run-in-place alternative to install.bat)
 ├── Novel_Generator.bat  ← Quick launcher after first setup (Windows)
 └── create_shortcut.bat  ← Creates a desktop shortcut (Windows)
 ```
@@ -224,12 +233,14 @@ Each file has `# TO EXTEND:` comments at key extension points.
 | Problem | Solution |
 |---------|----------|
 | *"Python is not installed or not in your PATH"* | Reinstall Python from python.org and check **Add Python to PATH** |
-| *"Failed to install dependencies"* | Run Command Prompt as Administrator and re-run `setup_and_run.bat` |
+| *"Failed to install dependencies"* | Run Command Prompt as Administrator and re-run `install.bat` |
 | App window is blank or crashes | Make sure you're using Python 3.9+ (`python --version`) |
 | Ollama shows "not found" | Install from https://ollama.ai/download, then run `ollama pull llama3.2` |
 | Ollama "no models pulled" warning | Run `ollama pull llama3.2` in Command Prompt |
 | Research uses offline fallback | Normal — Wikipedia wasn't reachable. The app still generates a complete novel. |
 | Generation takes a long time | Normal with Ollama for 25 chapters — local LLM generation is thorough. Progress dots appear in the status area. |
+| Rewrite shows no change | Ollama is not installed — the rewrite falls back to regeneration. Install Ollama for chapter-level style rewrites. |
+| Desktop/Start Menu shortcut missing | Re-run `install.bat` or run `create_shortcut.bat` to create the Desktop shortcut only. |
 
 ---
 
