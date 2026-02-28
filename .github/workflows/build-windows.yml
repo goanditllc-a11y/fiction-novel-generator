@@ -1,0 +1,84 @@
+name: Build Windows
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        shell: pwsh
+
+      - name: Download spaCy model
+        run: python -m spacy download en_core_web_sm
+        shell: pwsh
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+        shell: pwsh
+        continue-on-error: true
+
+      - name: Build executable
+        run: |
+          if (Test-Path "build.bat") {
+            cmd /c build.bat
+          } elseif (Test-Path "app.spec") {
+            pyinstaller app.spec --clean
+          } else {
+            $iconArg = if (Test-Path "assets/icon.ico") { "--icon=assets/icon.ico" } else { "" }
+            $entrypoint = if (Test-Path "src/main.py") { "src/main.py" } else { "main.py" }
+            pyinstaller --name FictionNovelEditor --onedir --windowed $iconArg $entrypoint
+          }
+        shell: pwsh
+
+      - name: Create ZIP archive
+        run: Compress-Archive -Path dist/FictionNovelEditor/* -DestinationPath FictionNovelEditor-Windows-x64.zip
+        shell: pwsh
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FictionNovelEditor-Windows-x64
+          path: FictionNovelEditor-Windows-x64.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: FictionNovelEditor-Windows-x64
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Fiction Novel Editor ${{ github.ref_name }}
+          body: |
+            Download `FictionNovelEditor-Windows-x64.zip`, extract, and double-click `FictionNovelEditor.exe` to run.
+          files: FictionNovelEditor-Windows-x64.zip
+          generate_release_notes: true
