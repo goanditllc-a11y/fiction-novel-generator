@@ -105,6 +105,7 @@ def save_novel(
     genre: str,
     num_chapters: int,
     title: Optional[str] = None,
+    sequel_of: Optional[str] = None,
 ) -> str:
     """
     Saves all novel artefacts to the organised folder structure.
@@ -119,6 +120,8 @@ def save_novel(
         num_chapters: Number of chapters generated.
         title:        Optional override for the novel title. If None, the
                       title is extracted from the novel text.
+        sequel_of:    If this novel is a sequel, pass the original novel's
+                      idea/title here so it is recorded in metadata.json.
 
     Returns:
         The absolute path to the version directory where files were saved.
@@ -182,6 +185,8 @@ def save_novel(
         "version": version_str,
         "word_count": word_count,
     }
+    if sequel_of:
+        metadata["sequel_of"] = sequel_of
     with open(
         os.path.join(version_dir, "metadata.json"), "w", encoding="utf-8"
     ) as fh:

@@ -129,6 +129,71 @@ class NovelEngine:
         self._status("✅ Novel generation complete!")
         return result
 
+    def generate_sequels(
+        self,
+        original_result: dict,
+        sequel_idea: str,
+        genre: str,
+        num_chapters: int,
+        num_versions: int,
+    ) -> "list[dict[str, str]]":
+        """
+        Generates *num_versions* independent sequel drafts for the given
+        original novel.  Each version runs the full 7-phase pipeline with
+        the original novel's characters and plot woven into the premise, so
+        every draft is a genuine continuation that picks up where the
+        original left off.
+
+        Args:
+            original_result:  The result dict returned by generate_novel().
+            sequel_idea:      A user-supplied sequel premise (may be empty).
+            genre:            Genre for the sequel (defaults to original genre).
+            num_chapters:     Number of chapters in each sequel draft.
+            num_versions:     How many independent drafts to generate (1–5).
+
+        Returns:
+            A list of result dicts, each identical in structure to the dict
+            returned by generate_novel(), plus an extra key:
+              "sequel_version"  (int) — 1-based index of this draft.
+        """
+        # ── Build an enriched idea that includes original-novel context ──
+        _CHAR_CTX_LIMIT = 600   # characters of character profiles to include
+        _PLOT_CTX_LIMIT = 400   # characters of plot outline to include
+        context_parts: list[str] = []
+        if original_result.get("characters"):
+            context_parts.append(
+                "Characters from the original novel:\n"
+                + original_result["characters"][:_CHAR_CTX_LIMIT]
+            )
+        if original_result.get("plot_outline"):
+            context_parts.append(
+                "Original plot outline:\n"
+                + original_result["plot_outline"][:_PLOT_CTX_LIMIT]
+            )
+        context = "\n\n".join(context_parts)
+
+        if context:
+            enriched_idea = (
+                f"{sequel_idea}\n\n"
+                f"[This is a sequel — continue with the same characters and world.  "
+                f"Original novel context:\n{context}]"
+            )
+        else:
+            enriched_idea = sequel_idea
+
+        # ── Generate each version independently ─────────────────────────
+        results: list[dict] = []
+        for version in range(1, num_versions + 1):
+            self._status(
+                f"\n{'─' * 40}\n"
+                f"📖 Generating sequel version {version}/{num_versions}…\n"
+            )
+            result = self.generate_novel(enriched_idea, genre, num_chapters)
+            result["sequel_version"] = version
+            results.append(result)
+
+        return results
+
     def _make_ollama_writer(
         self,
         model: str,

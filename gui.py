@@ -47,6 +47,8 @@ class NovelGeneratorApp(tk.Tk):
         self._last_idea: str = ""
         self._last_genre: str = ""
         self._last_chapters: int = DEFAULT_CHAPTERS
+        self._sequel_original_idea: str = ""  # original idea preserved during sequel generation
+        self._sequel_idea: str = ""           # premise entered for the current sequel batch
 
         style = ttk.Style(self)
         for preferred in ("clam", "alt", "default"):
@@ -189,6 +191,15 @@ class NovelGeneratorApp(tk.Tk):
             command=self._new_novel,
         ).pack(side=tk.LEFT, expand=True, fill=tk.X)
 
+        # Sequel generation button (enabled once a novel has been generated)
+        self.sequel_btn = ttk.Button(
+            parent,
+            text="✍️  Generate Sequels…",
+            command=self._start_sequel_generation,
+            state=tk.DISABLED,
+        )
+        self.sequel_btn.pack(fill=tk.X, pady=(4, 0))
+
         ttk.Separator(parent, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=6)
 
         # Progress area
@@ -306,6 +317,7 @@ class NovelGeneratorApp(tk.Tk):
         self._set_preview(novel_text)
         self.save_btn.config(state=tk.NORMAL)
         self.generate_btn.config(state=tk.NORMAL)
+        self.sequel_btn.config(state=tk.NORMAL)
         self._append_status(
             f"\n🎉 Novel ready!  "
             f"~{word_count:,} words (~{pages_est} pages).  "
@@ -336,6 +348,7 @@ class NovelGeneratorApp(tk.Tk):
                 idea=self._last_idea,
                 genre=self._last_genre,
                 num_chapters=self._last_chapters,
+                sequel_of=self._last_result.get("sequel_of") or None,
             )
             self._append_status(f"\n💾 Saved to: {saved_dir}\n")
             messagebox.showinfo("Saved!", f"Novel saved to:\n{saved_dir}")
@@ -343,6 +356,95 @@ class NovelGeneratorApp(tk.Tk):
             messagebox.showerror("Save Error", f"Could not write files:\n{exc}")
         except Exception as exc:  # noqa: BLE001
             messagebox.showerror("Save Error", str(exc))
+
+    def _start_sequel_generation(self) -> None:
+        """Opens the sequel setup dialog, then launches background generation."""
+        if not self._last_result:
+            messagebox.showwarning(
+                "No Novel",
+                "Generate (or load) a novel first before creating a sequel.",
+            )
+            return
+
+        dialog = SequelSetupDialog(self, self._last_genre)
+        self.wait_window(dialog)
+        if not dialog.result:
+            return  # user cancelled
+
+        params = dialog.result
+        sequel_idea = params["idea"] or "Continue the story with new adventures and challenges."
+        genre = params["genre"]
+        num_chapters = params["chapters"]
+        num_versions = params["num_versions"]
+
+        # Preserve the original novel's idea so metadata can record the link
+        self._sequel_original_idea = self._last_idea
+        self._sequel_idea = sequel_idea
+
+        self.generate_btn.config(state=tk.DISABLED)
+        self.save_btn.config(state=tk.DISABLED)
+        self.sequel_btn.config(state=tk.DISABLED)
+
+        self._append_status(f"\n{'=' * 50}\n")
+        self._append_status(
+            f"Generating {num_versions} sequel version(s) — this may take a while…\n"
+        )
+
+        threading.Thread(
+            target=self._run_sequel_generation,
+            args=(sequel_idea, genre, num_chapters, num_versions),
+            daemon=True,
+        ).start()
+
+    def _run_sequel_generation(
+        self, sequel_idea: str, genre: str, num_chapters: int, num_versions: int
+    ) -> None:
+        def status(msg: str) -> None:
+            self.after(0, self._append_status, msg + "\n")
+
+        try:
+            engine = novel_engine.NovelEngine(status_callback=status)
+            sequel_results = engine.generate_sequels(
+                self._last_result, sequel_idea, genre, num_chapters, num_versions
+            )
+            self.after(0, self._on_sequel_generation_complete, sequel_results)
+        except OSError as exc:
+            self.after(0, self._on_generation_error, f"Network or file error:\n{exc}")
+        except Exception as exc:  # noqa: BLE001
+            self.after(0, self._on_generation_error, f"Unexpected error:\n{exc}")
+
+    def _on_sequel_generation_complete(self, sequel_results: list) -> None:
+        self.generate_btn.config(state=tk.NORMAL)
+        self.sequel_btn.config(state=tk.NORMAL)
+
+        self._append_status(
+            f"\n✅ {len(sequel_results)} sequel version(s) ready — "
+            "opening selection dialog…\n"
+        )
+
+        dialog = SequelSelectionDialog(self, sequel_results)
+        self.wait_window(dialog)
+
+        if dialog.selected_result:
+            result = dialog.selected_result
+            # Tag the result so _save_novel can record the sequel relationship
+            result["sequel_of"] = self._sequel_original_idea
+            self._last_result = result
+            self._last_idea = self._sequel_idea
+            self._last_genre = result.get("genre", self._last_genre)
+            self._last_chapters = result.get("num_chapters", self._last_chapters)
+
+            novel_text = result["novel"]
+            word_count = len(novel_text.split())
+            pages_est = word_count // 250
+            self._set_preview(novel_text)
+            self.save_btn.config(state=tk.NORMAL)
+            version_num = result.get("sequel_version", "?")
+            self._append_status(
+                f"\n🎉 Sequel Version {version_num} selected!  "
+                f"~{word_count:,} words (~{pages_est} pages).  "
+                "Click 'Save Novel' to export.\n"
+            )
 
     def _new_novel(self) -> None:
         if self._last_result:
@@ -358,6 +460,7 @@ class NovelGeneratorApp(tk.Tk):
         self._set_preview("")
         self._clear_status()
         self.save_btn.config(state=tk.DISABLED)
+        self.sequel_btn.config(state=tk.DISABLED)
         self._last_result = None
 
     # ------------------------------------------------------------------
@@ -469,6 +572,240 @@ class SettingsDialog(tk.Toplevel):
         )
 
         self._center(parent)
+
+    def _center(self, parent: tk.Tk) -> None:
+        self.update_idletasks()
+        pw, ph = parent.winfo_width(), parent.winfo_height()
+        px, py = parent.winfo_x(), parent.winfo_y()
+        w, h = self.winfo_width(), self.winfo_height()
+        self.geometry(f"+{px + (pw - w) // 2}+{py + (ph - h) // 2}")
+
+
+# ---------------------------------------------------------------------------
+# Sequel Setup Dialog
+# ---------------------------------------------------------------------------
+
+class SequelSetupDialog(tk.Toplevel):
+    """
+    Modal dialog that collects the sequel premise, genre, chapter count, and
+    the number of independent versions to generate before showing the
+    SequelSelectionDialog.
+    """
+
+    def __init__(self, parent: tk.Tk, default_genre: str) -> None:
+        super().__init__(parent)
+        self.title("Generate Sequel Versions")
+        self.resizable(False, False)
+        self.grab_set()
+
+        self.result: Optional[dict] = None  # set by _ok(); None means cancelled
+
+        pad: dict = {"padx": 12, "pady": 5}
+
+        ttk.Label(
+            self,
+            text="Sequel Setup",
+            font=("Segoe UI", 12, "bold"),
+        ).grid(row=0, column=0, columnspan=2, sticky=tk.W, **pad)
+
+        ttk.Label(self, text="Sequel premise\n(optional):").grid(
+            row=1, column=0, sticky=tk.NW, **pad
+        )
+        self._idea_text = scrolledtext.ScrolledText(
+            self, height=5, width=50, wrap=tk.WORD, font=("Segoe UI", 10)
+        )
+        self._idea_text.grid(row=1, column=1, padx=(0, 12), pady=5)
+        self._idea_text.insert("1.0", "The story continues…")
+        self._idea_text.bind("<FocusIn>", self._clear_placeholder)
+
+        ttk.Label(self, text="Genre:").grid(row=2, column=0, sticky=tk.W, **pad)
+        self._genre_var = tk.StringVar(value=default_genre)
+        ttk.Combobox(
+            self,
+            textvariable=self._genre_var,
+            values=GENRES,
+            state="readonly",
+            width=20,
+        ).grid(row=2, column=1, sticky=tk.W, padx=(0, 12), pady=5)
+
+        ttk.Label(self, text="Chapters:").grid(row=3, column=0, sticky=tk.W, **pad)
+        self._chapters_var = tk.IntVar(value=DEFAULT_CHAPTERS)
+        ttk.Spinbox(
+            self, from_=1, to=50, textvariable=self._chapters_var, width=6
+        ).grid(row=3, column=1, sticky=tk.W, padx=(0, 12), pady=5)
+
+        ttk.Label(self, text="Number of versions:").grid(
+            row=4, column=0, sticky=tk.W, **pad
+        )
+        self._num_versions_var = tk.IntVar(value=3)
+        ttk.Spinbox(
+            self, from_=1, to=5, textvariable=self._num_versions_var, width=6
+        ).grid(row=4, column=1, sticky=tk.W, padx=(0, 12), pady=5)
+
+        ttk.Label(
+            self,
+            text="Generates 1–5 independent sequel drafts for you to compare and choose from.",
+            font=("Segoe UI", 8),
+            foreground="#666666",
+        ).grid(row=5, column=0, columnspan=2, sticky=tk.W, padx=12, pady=(0, 4))
+
+        btn_frame = ttk.Frame(self)
+        btn_frame.grid(row=6, column=0, columnspan=2, pady=(4, 10))
+        ttk.Button(btn_frame, text="Generate Sequels", command=self._ok).pack(
+            side=tk.LEFT, padx=(0, 8)
+        )
+        ttk.Button(btn_frame, text="Cancel", command=self.destroy).pack(side=tk.LEFT)
+
+        self._center(parent)
+
+    def _clear_placeholder(self, _event: tk.Event) -> None:  # type: ignore[type-arg]
+        if self._idea_text.get("1.0", tk.END).strip() == "The story continues…":
+            self._idea_text.delete("1.0", tk.END)
+
+    def _ok(self) -> None:
+        idea = self._idea_text.get("1.0", tk.END).strip()
+        if idea == "The story continues…":
+            idea = ""
+        try:
+            num_versions = max(1, min(5, int(self._num_versions_var.get())))
+        except ValueError:
+            num_versions = 3
+        self.result = {
+            "idea": idea,
+            "genre": self._genre_var.get(),
+            "chapters": int(self._chapters_var.get()),
+            "num_versions": num_versions,
+        }
+        self.destroy()
+
+    def _center(self, parent: tk.Tk) -> None:
+        self.update_idletasks()
+        pw, ph = parent.winfo_width(), parent.winfo_height()
+        px, py = parent.winfo_x(), parent.winfo_y()
+        w, h = self.winfo_width(), self.winfo_height()
+        self.geometry(f"+{px + (pw - w) // 2}+{py + (ph - h) // 2}")
+
+
+# ---------------------------------------------------------------------------
+# Sequel Selection Dialog
+# ---------------------------------------------------------------------------
+
+class SequelSelectionDialog(tk.Toplevel):
+    """
+    Modal dialog that presents every generated sequel version in a listbox.
+    Clicking a version shows a scrollable preview on the right.  The user
+    picks one version and clicks "Use This Version" to confirm.
+    """
+
+    def __init__(self, parent: tk.Tk, sequel_results: list) -> None:
+        super().__init__(parent)
+        self.title("Choose a Sequel Version")
+        self.geometry("1100x700")
+        self.minsize(800, 500)
+        self.grab_set()
+
+        self.sequel_results = sequel_results
+        self.selected_result: Optional[dict] = None
+
+        self._build_ui()
+        self._center(parent)
+
+    def _build_ui(self) -> None:
+        ttk.Label(
+            self,
+            text=f"Select one of {len(self.sequel_results)} sequel version(s) to keep:",
+            font=("Segoe UI", 11, "bold"),
+            padding=(10, 8),
+        ).pack(anchor=tk.W)
+
+        ttk.Separator(self, orient=tk.HORIZONTAL).pack(fill=tk.X)
+
+        paned = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
+        paned.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        left = ttk.Frame(paned, padding=4)
+        right = ttk.Frame(paned, padding=4)
+        paned.add(left, weight=1)
+        paned.add(right, weight=3)
+
+        # ── Left: version list ────────────────────────────────────────
+        ttk.Label(left, text="Versions:", font=("Segoe UI", 10, "bold")).pack(
+            anchor=tk.W
+        )
+        self._version_listbox = tk.Listbox(
+            left, selectmode=tk.SINGLE, font=("Segoe UI", 10), activestyle="dotbox"
+        )
+        self._version_listbox.pack(fill=tk.BOTH, expand=True, pady=(4, 0))
+
+        for result in self.sequel_results:
+            wc = len(result["novel"].split())
+            v = result.get("sequel_version", "?")
+            self._version_listbox.insert(tk.END, f"  Version {v}   (~{wc:,} words)  ")
+
+        self._version_listbox.bind("<<ListboxSelect>>", self._on_version_select)
+        self._version_listbox.selection_set(0)
+
+        # ── Right: preview ────────────────────────────────────────────
+        ttk.Label(right, text="Preview:", font=("Segoe UI", 10, "bold")).pack(
+            anchor=tk.W
+        )
+        self._preview = scrolledtext.ScrolledText(
+            right,
+            state=tk.DISABLED,
+            font=("Georgia", 10),
+            wrap=tk.WORD,
+            padx=8,
+            pady=6,
+        )
+        self._preview.pack(fill=tk.BOTH, expand=True, pady=(4, 0))
+
+        # ── Bottom: action buttons ────────────────────────────────────
+        btn_frame = ttk.Frame(self, padding=(10, 6))
+        btn_frame.pack(fill=tk.X)
+
+        ttk.Button(
+            btn_frame,
+            text="✅  Use This Version",
+            command=self._use_selected,
+        ).pack(side=tk.LEFT, padx=(0, 8))
+
+        ttk.Button(
+            btn_frame,
+            text="Cancel — discard all versions",
+            command=self.destroy,
+        ).pack(side=tk.LEFT)
+
+        # Show first version's preview immediately
+        self._show_preview(0)
+
+    def _on_version_select(self, _event: tk.Event) -> None:  # type: ignore[type-arg]
+        sel = self._version_listbox.curselection()
+        if sel:
+            self._show_preview(sel[0])
+
+    def _show_preview(self, index: int) -> None:
+        _PREVIEW_CHARS = 8000   # characters shown in the selection dialog preview
+        novel_text = self.sequel_results[index]["novel"]
+        # Show the first _PREVIEW_CHARS characters to keep the dialog responsive
+        preview = novel_text[:_PREVIEW_CHARS]
+        if len(novel_text) > _PREVIEW_CHARS:
+            preview += "\n\n[... preview truncated — full novel available after saving ...]"
+
+        self._preview.config(state=tk.NORMAL)
+        self._preview.delete("1.0", tk.END)
+        self._preview.insert("1.0", preview)
+        self._preview.config(state=tk.DISABLED)
+        self._preview.see("1.0")
+
+    def _use_selected(self) -> None:
+        sel = self._version_listbox.curselection()
+        if not sel:
+            messagebox.showwarning(
+                "No Selection", "Please click a version in the list first.", parent=self
+            )
+            return
+        self.selected_result = self.sequel_results[sel[0]]
+        self.destroy()
 
     def _center(self, parent: tk.Tk) -> None:
         self.update_idletasks()
